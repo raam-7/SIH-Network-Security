@@ -1,0 +1,79 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# JavaScript / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+frontend/.turbo/
+
+# Logs and local databases
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Uploaded, runtime, and generated files
+uploads/
+runtime/
+tmp/
+temp/
+artifacts/
+reports/
+*.jsonl
+
+# ML weights, checkpoints, and adapters
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.h5
+*.keras
+*.gguf
+*.ggml
+checkpoints/
+models/
+weights/
+adapters/
+loras/
+qlora/
+
+# Local tooling files
+.python-version
