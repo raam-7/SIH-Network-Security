@@ -77,3 +77,8 @@ qlora/
 
 # Local tooling files
 .python-version
+
+# SIH AI/ML curated dataset
+!training/train.jsonl
+!training/val.jsonl
+!training/test.jsonl

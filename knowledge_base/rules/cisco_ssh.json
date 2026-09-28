@@ -1,0 +1,14 @@
+{
+  "rule_id": "CISCO-SSH-001",
+  "framework": "CIS",
+  "framework_version": "TO_BE_VERIFIED",
+  "vendor": "cisco",
+  "product": "ios-xe",
+  "security_concept": "SSH_VERSION",
+  "operator": "EQUALS",
+  "expected_value": 2,
+  "severity": "MEDIUM",
+  "check_text": "SSH protocol version must be 2",
+  "remediation": "ip ssh version 2",
+  "source_ref": "TO_BE_VERIFIED"
+}

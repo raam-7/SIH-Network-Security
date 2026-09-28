@@ -1,0 +1,8 @@
+[
+  {
+    "concept_id": "SSH_VERSION",
+    "rule_id": "CISCO-SSH-001",
+    "relationship": "evaluated_by",
+    "rationale": "SSH_VERSION represents the configured SSH protocol version."
+  }
+]

@@ -1,0 +1,2 @@
+{"vendor":"cisco","platform":"ios-xe","raw_command":"ip ssh version 2","security_domain":"REMOTE_MANAGEMENT","security_concept":"SSH_VERSION","property":"protocol_version","value":2,"line_start":5,"line_end":5,"source_type":"vendor_config","human_verified":true}
+{"vendor":"cisco","platform":"ios-xe","raw_command":"ip ssh version 1","security_domain":"REMOTE_MANAGEMENT","security_concept":"SSH_VERSION","property":"protocol_version","value":1,"line_start":6,"line_end":6,"source_type":"vendor_config","human_verified":true}
