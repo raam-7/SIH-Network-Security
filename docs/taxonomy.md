@@ -12,3 +12,6 @@
 
 These canonical concepts allow different vendor configurations
 to be converted into a common security representation.
+| SSH_TIMEOUT | REMOTE_MANAGEMENT | timeout_seconds | 60 |
+| SSH_AUTH_RETRIES | REMOTE_MANAGEMENT | retry_limit | 5 |
+| SSH_MAXSTARTUPS | REMOTE_MANAGEMENT | max_startups | 3 |

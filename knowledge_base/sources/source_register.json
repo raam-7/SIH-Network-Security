@@ -16,5 +16,68 @@
     "version": "17.x",
     "title": "Cisco IOS XE Security Configuration Guide",
     "url": "https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/security-vpn/security-vpn.html"
+  },
+  {
+    "source_id": "S9",
+    "source_type": "public_repository_configuration",
+    "vendor": "cisco",
+    "product": "IOS",
+    "version": "15.1",
+    "title": "NetworkDeviceConfigs basic Cisco router config",
+    "url": "https://github.com/jasonadsit/NetworkDeviceConfigs"
+  },
+  {
+    "source_id": "S10",
+    "source_type": "public_repository_configuration",
+    "vendor": "cisco",
+    "product": "IOS",
+    "version": "15.5",
+    "title": "Cisco IOS configuration Gist",
+    "url": "https://gist.github.com/cerebrate/c0e9274a292c4cde941771ff4a7c68bc"
+  },
+  {
+    "source_id": "S11",
+    "source_type": "public_configuration_template_script",
+    "vendor": "cisco",
+    "product": "IOS",
+    "version": "template",
+    "title": "Cisco IOS configuration template script",
+    "url": "https://gist.github.com/remoteur/a32a9b17ec767531c205"
+  },
+  {
+    "source_id": "S12",
+    "source_type": "public_repository_configuration",
+    "vendor": "cisco",
+    "product": "IOS",
+    "version": "15.1",
+    "title": "Cisco IOS configuration Gist",
+    "url": "https://gist.github.com/EasyG0ing1/62e15df9eb6e79570cc44f9db8c9748f"
+  },
+  {
+    "source_id": "S13",
+    "source_type": "public_repository_configuration",
+    "vendor": "cisco",
+    "product": "IOS-XE",
+    "version": "16.3",
+    "title": "Cisco ASR configuration Gist",
+    "url": "https://gist.github.com/dwinurhadia/c53f05658c37718245dcacaad3e6e592"
+  },
+  {
+    "source_id": "S14",
+    "source_type": "authoritative_security_requirement",
+    "vendor": "cisco",
+    "product": "IOS-XE",
+    "version": "17.x",
+    "title": "CIS Cisco IOS XE 17.x Benchmark",
+    "url": "https://www.cisecurity.org/benchmark/cisco"
+  },
+  {
+    "source_id": "S15",
+    "source_type": "authoritative_security_requirement",
+    "vendor": "general",
+    "product": "SSH",
+    "version": "NIST IR 7966",
+    "title": "Security of Interactive and Automated Access Management Using Secure Shell (SSH)",
+    "url": "https://csrc.nist.gov/pubs/ir/7966/final"
   }
 ]

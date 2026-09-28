@@ -1,0 +1,10 @@
+{
+  "source_id": "S15",
+  "authority": "NIST",
+  "title": "Security of Interactive and Automated Access Management Using Secure Shell (SSH)",
+  "document": "NIST IR 7966",
+  "security_concept": "SSH_VERSION",
+  "requirement": "Use SSH protocol version 2.",
+  "source_url": "https://csrc.nist.gov/pubs/ir/7966/final",
+  "source_type": "authoritative_security_requirement"
+}

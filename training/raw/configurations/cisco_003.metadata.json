@@ -1,0 +1,10 @@
+{
+  "source_id": "S11",
+  "source_url": "https://gist.github.com/remoteur/a32a9b17ec767531c205",
+  "collection_date": "2026-09-29",
+  "vendor": "cisco",
+  "platform": "ios",
+  "source_type": "public_configuration_template_script",
+  "usage_note": "Configuration-generation script; not treated as a raw device configuration.",
+  "filename": "cisco_003.txt"
+}
