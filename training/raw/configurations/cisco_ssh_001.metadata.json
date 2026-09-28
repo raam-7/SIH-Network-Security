@@ -1,0 +1,11 @@
+{
+  "source_id": "S8",
+  "source_url": "https://www.cisco.com/c/en/us/td/docs/routers/ios-xe/security-vpn/security-vpn.html",
+  "collection_date": "2026-09-29",
+  "vendor": "cisco",
+  "platform": "ios-xe",
+  "version": "17.x",
+  "source_type": "vendor_documentation",
+  "license_usage_note": "Cisco public documentation; used as an authoritative semantic reference.",
+  "filename": "cisco_ssh_001"
+}
