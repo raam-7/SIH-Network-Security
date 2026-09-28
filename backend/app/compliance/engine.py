@@ -1,0 +1,91 @@
+"""Small deterministic compliance engine for canonical security facts."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import List, Optional
+
+from backend.app.schemas import Evidence, Finding, FindingResult, FindingSeverity, SecurityFact
+
+
+class CiscoSSH001Rule:
+    """Evaluate CISCO-SSH-001 for one applicable SSH fact.
+
+    Facts are evaluated per statement. Effective running-config resolution,
+    including any last-command-wins policy, is intentionally future work.
+    """
+
+    rule_id = "CISCO-SSH-001"
+    expected_value = 2
+    severity = FindingSeverity.MEDIUM
+
+    def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
+        if fact.security_concept != "SSH_VERSION" or fact.property != "protocol_version":
+            return None
+
+        if fact.value is None:
+            result = FindingResult.MANUAL
+            title = "SSH protocol version requires manual verification"
+            description = "An SSH version fact was found, but its protocol version is unresolved."
+            remediation = "Verify or configure SSH protocol version 2."
+        elif fact.value == self.expected_value:
+            result = FindingResult.PASS
+            title = "SSH protocol version is 2"
+            description = "The configured SSH protocol version matches the required value of 2."
+            remediation = None
+        else:
+            result = FindingResult.FAIL
+            title = "SSH protocol version is not 2"
+            description = "The configured SSH protocol version does not match the required value of 2."
+            remediation = "ip ssh version 2"
+
+        return Finding(
+            rule_id=self.rule_id,
+            result=result,
+            severity=self.severity,
+            observed_value=fact.value,
+            expected_value=self.expected_value,
+            evidence=fact.evidence,
+            title=title,
+            description=description,
+            remediation=remediation,
+        )
+
+
+class ComplianceEngine:
+    """Select and run deterministic compliance rules over SecurityFacts."""
+
+    def __init__(self) -> None:
+        self._ssh_rule = CiscoSSH001Rule()
+
+    def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
+        """Evaluate one fact; unrelated facts do not produce findings."""
+        return self._ssh_rule.evaluate(fact)
+
+    def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
+        """Evaluate each applicable fact, or MANUAL when SSH evidence is absent."""
+        fact_list = list(facts)
+        findings = [finding for fact in fact_list if (finding := self.evaluate(fact)) is not None]
+        if not any(
+            fact.security_concept == "SSH_VERSION" and fact.property == "protocol_version"
+            for fact in fact_list
+        ):
+            findings.append(self._manual_absence_finding())
+        return findings
+
+    @staticmethod
+    def _manual_absence_finding() -> Finding:
+        # Evidence requires positive line numbers. For absence, the canonical
+        # file-level sentinel is 1/1 with empty exact_text; this is not a
+        # fabricated configuration line or command.
+        return Finding(
+            rule_id="CISCO-SSH-001",
+            result=FindingResult.MANUAL,
+            severity=FindingSeverity.MEDIUM,
+            observed_value=None,
+            expected_value=2,
+            evidence=Evidence(line_start=1, line_end=1, exact_text=""),
+            title="SSH protocol version was not explicitly configured",
+            description="No explicit SSH_VERSION/protocol_version SecurityFact was found; verify the device configuration manually.",
+            remediation="Verify or configure SSH protocol version 2.",
+        )

@@ -1,0 +1,12 @@
+{
+  "source_id": "S9",
+  "source_url": "https://github.com/jasonadsit/NetworkDeviceConfigs/blob/master/basic-cisco-router-config.txt",
+  "raw_url": "https://raw.githubusercontent.com/jasonadsit/NetworkDeviceConfigs/master/basic-cisco-router-config.txt",
+  "collection_date": "2026-09-29",
+  "vendor": "cisco",
+  "platform": "ios",
+  "version": "15.1",
+  "source_type": "public_repository_configuration",
+  "license_usage_note": "MIT License; retain copyright and license notice.",
+  "filename": "cisco_001.txt"
+}
