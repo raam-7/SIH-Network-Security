@@ -1,0 +1,90 @@
+from pathlib import Path
+
+import pytest
+
+from backend.app.normalization.cisco import CiscoSecurityFactMapper, MAPPING_SOURCE
+from backend.app.schemas import Evidence, ParsedCommand, SecurityFact
+from parsers.cisco import parse_cisco_config
+
+
+def parsed(raw, parent=None, start=10, end=None):
+    return ParsedCommand(raw_command=raw, line_start=start, line_end=end or start, parent_context=parent)
+
+
+@pytest.mark.parametrize(
+    ("raw", "value"), [("ip ssh version 2", 2), ("ip ssh version 1", 1)]
+)
+def test_ssh_version_mapping(raw, value):
+    fact = CiscoSecurityFactMapper().map_command(parsed(raw))
+    assert isinstance(fact, SecurityFact)
+    assert fact.security_concept == "SSH_VERSION"
+    assert fact.value == value
+
+
+def test_unknown_and_unrelated_commands_return_none():
+    mapper = CiscoSecurityFactMapper()
+    assert mapper.map_command(parsed("some future Cisco command")) is None
+    assert mapper.map_command(parsed("logging buffered 64000")) is None
+    assert mapper.map_command(parsed("transport input telnet", "interface GigabitEthernet0/1")) is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "value"),
+    [("transport input ssh", False), ("transport input telnet", True), ("transport input telnet ssh", True)],
+)
+def test_vty_transport_mapping(raw, value):
+    fact = CiscoSecurityFactMapper().map(parsed(raw, "line vty 0 4", 22))
+    assert fact.security_concept == "TELNET_ACCESS"
+    assert fact.value is value
+    assert fact.parent_context == "line vty 0 4"
+
+
+@pytest.mark.parametrize(
+    ("raw", "concept", "property_name", "value"),
+    [
+        ("aaa new-model", "AAA", "authentication_mode", "aaa"),
+        ("ntp authenticate", "NTP_AUTHENTICATION", "enabled", True),
+        ("no ntp authenticate", "NTP_AUTHENTICATION", "enabled", False),
+        ("logging host 192.0.2.10", "REMOTE_SYSLOG", "enabled", True),
+        ("no logging host 192.0.2.10", "REMOTE_SYSLOG", "enabled", False),
+    ],
+)
+def test_other_deterministic_mappings(raw, concept, property_name, value):
+    fact = CiscoSecurityFactMapper().map(parsed(raw, start=31))
+    assert (fact.security_concept, fact.property, fact.value) == (concept, property_name, value)
+    assert fact.raw_command == raw
+
+
+def test_evidence_and_contract_are_preserved():
+    command = parsed("ip ssh version 2", "router ospf 1", 40, 42)
+    fact = CiscoSecurityFactMapper().map_command(command)
+    assert isinstance(fact.evidence, Evidence)
+    assert fact.evidence.line_start == 40
+    assert fact.evidence.line_end == 42
+    assert fact.evidence.exact_text == command.raw_command
+    assert fact.vendor == "cisco"
+    assert fact.platform == "ios-xe"
+    assert 0.0 <= fact.confidence <= 1.0
+    assert fact.mapping_source == MAPPING_SOURCE
+
+
+def test_repeated_commands_are_not_deduplicated():
+    commands = [parsed("ip ssh version 2", start=n) for n in (1, 2, 3)]
+    facts = [CiscoSecurityFactMapper().map(c) for c in commands]
+    assert [fact.value for fact in facts] == [2, 2, 2]
+    assert [fact.evidence.line_start for fact in facts] == [1, 2, 3]
+
+
+def test_fixture_integration_for_ssh_and_management_security():
+    mapper = CiscoSecurityFactMapper()
+    root = Path("examples/cisco")
+    ssh_facts = [mapper.map(c) for c in parse_cisco_config(root / "02_ssh_variants.cfg")]
+    management_facts = [mapper.map(c) for c in parse_cisco_config(root / "03_management_security.cfg")]
+    ssh_facts = [f for f in ssh_facts if f]
+    management_facts = [f for f in management_facts if f]
+    assert {(f.security_concept, f.value) for f in ssh_facts} >= {
+        ("SSH_VERSION", 2), ("TELNET_ACCESS", False), ("TELNET_ACCESS", True)
+    }
+    assert {(f.security_concept, f.value) for f in management_facts} >= {
+        ("AAA", "aaa"), ("NTP_AUTHENTICATION", True), ("REMOTE_SYSLOG", True)
+    }
