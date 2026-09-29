@@ -32,6 +32,8 @@ def test_ssh_version_two_passes(value):
     assert finding.observed_value == 2
     assert finding.expected_value == 2
     assert finding.remediation is None
+    assert finding.evidence.line_start == 10
+    assert finding.evidence.exact_text == "source command"
 
 
 @pytest.mark.parametrize("value", [1, 0, 3])
@@ -61,6 +63,8 @@ def test_unresolved_ssh_value_is_manual():
     finding = ComplianceEngine().evaluate(fact(None))
     assert finding.result is FindingResult.MANUAL
     assert finding.observed_value is None
+    assert finding.evidence.line_start == 10
+    assert finding.evidence.exact_text == "source command"
 
 
 def test_wrong_concept_or_property_produces_no_ssh_finding():
@@ -93,3 +97,19 @@ def test_fixture_pipeline_produces_findings_for_actual_ssh_facts():
         (FindingResult.FAIL, 1, 29),
         (FindingResult.PASS, 2, 31),
     ]
+    assert [finding.evidence.exact_text for finding in findings] == [
+        "ip ssh version 2",
+        "ip ssh version 1",
+        "ip ssh version 2",
+    ]
+
+
+def test_fail_finding_retains_exact_command_evidence_and_remediation():
+    command = ParsedCommand(raw_command="ip ssh version 1", line_start=7, line_end=7)
+    security_fact = CiscoSecurityFactMapper().map(command)
+    finding = ComplianceEngine().evaluate(security_fact)
+
+    assert finding.result is FindingResult.FAIL
+    assert finding.evidence.line_start == finding.evidence.line_end == 7
+    assert finding.evidence.exact_text == "ip ssh version 1"
+    assert finding.remediation == "ip ssh version 2"

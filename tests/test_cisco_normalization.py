@@ -75,6 +75,24 @@ def test_repeated_commands_are_not_deduplicated():
     assert [fact.evidence.line_start for fact in facts] == [1, 2, 3]
 
 
+def test_parent_context_and_command_evidence_are_preserved():
+    command = parse_cisco_config("line vty 0 4\n transport input ssh\n")[1]
+    fact = CiscoSecurityFactMapper().map(command)
+
+    assert fact.parent_context == "line vty 0 4"
+    assert fact.evidence.line_start == fact.evidence.line_end == 2
+    assert fact.evidence.exact_text == "transport input ssh"
+
+
+def test_multiline_parser_evidence_preserves_source_text_and_range():
+    commands = parse_cisco_config("hostname R1\nbanner login ^\nAUTHORIZED\n^\n")
+    banner = commands[1]
+
+    assert banner.line_start == 2
+    assert banner.line_end == 4
+    assert banner.raw_command == "banner login ^\nAUTHORIZED\n^"
+
+
 def test_fixture_integration_for_ssh_and_management_security():
     mapper = CiscoSecurityFactMapper()
     root = Path("examples/cisco")
