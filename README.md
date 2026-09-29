@@ -39,6 +39,10 @@ Dashboard / Report
 - Cisco IOS/IOS-XE is the initial target.
 - AI, RAG, fine-tuning, PostgreSQL/pgvector, Juniper, Fortinet, and additional controls are not implemented yet.
 
+### Prototype compliance scope
+
+The project currently provides a limited prototype compliance control set; it does not claim complete CIS, NIST, or Cisco benchmark coverage. CIS metadata is used for concrete prototype configuration requirements, Cisco documentation supports configuration semantics, and NIST CSF is represented only as contextual framework mapping. Unverified framework metadata remains explicitly marked, and test configurations are not authoritative security baselines.
+
 ## Technology stack
 
 - Python 3.11+
