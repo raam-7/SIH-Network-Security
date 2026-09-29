@@ -82,7 +82,11 @@ def test_evidence_is_preserved_exactly_and_fact_is_not_mutated():
 
 
 def test_repeated_facts_are_evaluated_per_statement():
-    findings = ComplianceEngine().evaluate_all([fact(1, line=20), fact(2, line=30)])
+    findings = [
+        finding
+        for finding in ComplianceEngine().evaluate_all([fact(1, line=20), fact(2, line=30)])
+        if finding.rule_id == "CISCO-SSH-001"
+    ]
     assert [finding.result for finding in findings] == [FindingResult.FAIL, FindingResult.PASS]
     assert [finding.evidence.line_start for finding in findings] == [20, 30]
 
@@ -91,7 +95,11 @@ def test_fixture_pipeline_produces_findings_for_actual_ssh_facts():
     commands = parse_cisco_config(Path("examples/cisco/02_ssh_variants.cfg"))
     facts = [CiscoSecurityFactMapper().map(command) for command in commands]
     facts = [item for item in facts if item is not None and item.security_concept == "SSH_VERSION"]
-    findings = ComplianceEngine().evaluate_all(facts)
+    findings = [
+        finding
+        for finding in ComplianceEngine().evaluate_all(facts)
+        if finding.rule_id == "CISCO-SSH-001"
+    ]
     assert [(finding.result, finding.observed_value, finding.evidence.line_start) for finding in findings] == [
         (FindingResult.PASS, 2, 11),
         (FindingResult.FAIL, 1, 29),
@@ -102,6 +110,76 @@ def test_fixture_pipeline_produces_findings_for_actual_ssh_facts():
         "ip ssh version 1",
         "ip ssh version 2",
     ]
+
+
+def test_telnet_disabled_passes_with_evidence():
+    command = ParsedCommand(
+        raw_command="transport input ssh", line_start=2, line_end=2, parent_context="line vty 0 4"
+    )
+    security_fact = CiscoSecurityFactMapper().map(command)
+    finding = ComplianceEngine().evaluate(security_fact)
+
+    assert finding.rule_id == "CISCO-TELNET-001"
+    assert finding.result is FindingResult.PASS
+    assert finding.expected_value is False
+    assert finding.evidence.line_start == 2
+    assert finding.evidence.exact_text == "transport input ssh"
+    assert finding.remediation is None
+
+
+@pytest.mark.parametrize("raw", ["transport input telnet", "transport input telnet ssh"])
+def test_telnet_enabled_fails_with_deterministic_remediation(raw):
+    command = ParsedCommand(raw_command=raw, line_start=7, line_end=7, parent_context="line vty 0 4")
+    security_fact = CiscoSecurityFactMapper().map(command)
+    finding = ComplianceEngine().evaluate(security_fact)
+
+    assert finding.rule_id == "CISCO-TELNET-001"
+    assert finding.result is FindingResult.FAIL
+    assert finding.observed_value is True
+    assert finding.remediation == "Configure VTY transport input to permit SSH only."
+    assert finding.evidence.exact_text == raw
+
+
+def test_unresolved_telnet_access_is_manual_and_preserves_evidence():
+    unresolved = fact(None, concept="TELNET_ACCESS", property_name="enabled", line=19)
+    unresolved.raw_command = "transport input unknown"
+    unresolved.evidence.exact_text = "transport input unknown"
+    finding = ComplianceEngine().evaluate(unresolved)
+
+    assert finding.result is FindingResult.MANUAL
+    assert finding.expected_value is False
+    assert finding.evidence.line_start == 19
+    assert finding.evidence.exact_text == "transport input unknown"
+
+
+def test_telnet_absence_is_manual_without_fabricated_evidence():
+    findings = ComplianceEngine().evaluate_all([fact(2)])
+    telnet_finding = next(item for item in findings if item.rule_id == "CISCO-TELNET-001")
+
+    assert telnet_finding.result is FindingResult.MANUAL
+    assert telnet_finding.observed_value is None
+    assert telnet_finding.expected_value is False
+    assert telnet_finding.evidence.line_start == telnet_finding.evidence.line_end == 1
+    assert telnet_finding.evidence.exact_text == ""
+
+
+def test_unrelated_facts_do_not_generate_telnet_finding():
+    finding = ComplianceEngine().evaluate(fact(2))
+
+    assert finding.rule_id == "CISCO-SSH-001"
+
+
+def test_multiple_telnet_facts_are_evaluated_per_statement_in_order():
+    commands = [
+        ParsedCommand(raw_command="transport input ssh", line_start=2, line_end=2, parent_context="line vty 0 4"),
+        ParsedCommand(raw_command="transport input telnet", line_start=5, line_end=5, parent_context="line vty 0 4"),
+    ]
+    facts = [CiscoSecurityFactMapper().map(command) for command in commands]
+    findings = ComplianceEngine().evaluate_all(facts)
+
+    telnet_findings = [item for item in findings if item.rule_id == "CISCO-TELNET-001"]
+    assert [item.result for item in telnet_findings] == [FindingResult.PASS, FindingResult.FAIL]
+    assert [item.evidence.line_start for item in telnet_findings] == [2, 5]
 
 
 def test_fail_finding_retains_exact_command_evidence_and_remediation():

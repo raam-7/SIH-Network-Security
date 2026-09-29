@@ -103,7 +103,11 @@ def test_cisco_fixture_findings_integrate_with_risk_engine():
     commands = parse_cisco_config(Path("examples/cisco/02_ssh_variants.cfg"))
     facts = [CiscoSecurityFactMapper().map(command) for command in commands]
     facts = [fact for fact in facts if fact and fact.security_concept == "SSH_VERSION"]
-    findings = ComplianceEngine().evaluate_all(facts)
+    findings = [
+        finding
+        for finding in ComplianceEngine().evaluate_all(facts)
+        if finding.rule_id == "CISCO-SSH-001"
+    ]
     assessments = [RiskEngine().assess(finding) for finding in findings]
 
     assert [(item.result, item.risk_level, item.remediation_mode) for item in assessments] == [
