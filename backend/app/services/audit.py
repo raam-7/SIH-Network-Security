@@ -33,11 +33,7 @@ class AuditService:
             raise ValueError("configuration must contain non-whitespace text")
 
         commands = parse_cisco_config(config_text)
-        facts = [
-            fact
-            for command in commands
-            if (fact := self._mapper.map(command)) is not None
-        ]
+        facts = [fact for command in commands for fact in self._mapper.map_commands(command)]
         findings = self._compliance.evaluate_all(facts)
         assessments = [self._risk.assess(finding) for finding in findings]
         return AuditResult(

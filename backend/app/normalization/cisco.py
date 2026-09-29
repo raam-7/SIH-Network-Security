@@ -77,6 +77,39 @@ class CiscoSecurityFactMapper:
         """Alias for callers that prefer a concise mapper interface."""
         return self.map_command(command)
 
+    def map_vty_transport(self, command: ParsedCommand) -> Optional[SecurityFact]:
+        """Map a VTY transport command to its complete allowed-protocol fact."""
+        normalized = command.raw_command.strip()
+        match = _TRANSPORT_INPUT.fullmatch(normalized)
+        if not match or not (command.parent_context or "").lower().startswith("line vty"):
+            return None
+        return SecurityFact(
+            vendor="cisco",
+            platform="ios-xe",
+            raw_command=command.raw_command,
+            security_domain="REMOTE_MANAGEMENT",
+            security_concept="VTY_TRANSPORT",
+            property="allowed_protocols",
+            value=match.group(1).lower().split(),
+            confidence=1.0,
+            mapping_source=MAPPING_SOURCE,
+            evidence=Evidence(
+                line_start=command.line_start,
+                line_end=command.line_end,
+                exact_text=command.raw_command,
+            ),
+            parent_context=command.parent_context,
+        )
+
+    def map_commands(self, command: ParsedCommand) -> list[SecurityFact]:
+        """Return all deterministic facts represented by one parsed command."""
+        facts = []
+        if (fact := self.map_command(command)) is not None:
+            facts.append(fact)
+        if (fact := self.map_vty_transport(command)) is not None:
+            facts.append(fact)
+        return facts
+
 
 def map_cisco_command(command: ParsedCommand) -> Optional[SecurityFact]:
     """Map one parsed Cisco command without retaining mapper state."""

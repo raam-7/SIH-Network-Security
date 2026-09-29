@@ -144,6 +144,61 @@ def test_aaa_new_model_passes_with_exact_evidence():
     assert finding.evidence.exact_text == "aaa new-model"
 
 
+@pytest.mark.parametrize(
+    ("protocols", "result"),
+    [(["ssh"], FindingResult.PASS), (["telnet"], FindingResult.FAIL), (["telnet", "ssh"], FindingResult.FAIL)],
+)
+def test_vty_ssh_only_rule_evaluates_allowed_protocols(protocols, result):
+    security_fact = SecurityFact(
+        vendor="cisco", platform="ios-xe", raw_command="transport input test",
+        security_domain="REMOTE_MANAGEMENT", security_concept="VTY_TRANSPORT",
+        property="allowed_protocols", value=protocols, confidence=1.0,
+        mapping_source="deterministic_mapping",
+        evidence=Evidence(line_start=4, line_end=4, exact_text="transport input test"),
+        parent_context="line vty 0 4",
+    )
+    finding = ComplianceEngine().evaluate(security_fact)
+
+    assert finding.rule_id == "CISCO-VTY-SSH-001"
+    assert finding.result is result
+    assert finding.evidence.line_start == 4
+    assert finding.evidence.exact_text == "transport input test"
+    if result is FindingResult.FAIL:
+        assert finding.remediation == "Configure VTY transport input to permit SSH only."
+
+
+def test_vty_ssh_only_unresolved_and_absent_are_manual():
+    unresolved = SecurityFact(
+        vendor="cisco", platform="ios-xe", raw_command="transport input unknown",
+        security_domain="REMOTE_MANAGEMENT", security_concept="VTY_TRANSPORT",
+        property="allowed_protocols", value=None, confidence=1.0,
+        mapping_source="deterministic_mapping",
+        evidence=Evidence(line_start=6, line_end=6, exact_text="transport input unknown"),
+        parent_context="line vty 0 4",
+    )
+    finding = ComplianceEngine().evaluate(unresolved)
+    absent = next(item for item in ComplianceEngine().evaluate_all([fact(2)]) if item.rule_id == "CISCO-VTY-SSH-001")
+
+    assert finding.result is FindingResult.MANUAL
+    assert finding.evidence.exact_text == "transport input unknown"
+    assert absent.result is FindingResult.MANUAL
+    assert absent.evidence.line_start == absent.evidence.line_end == 1
+    assert absent.evidence.exact_text == ""
+
+
+def test_vty_fixture_pipeline_produces_pass_and_fail_findings():
+    commands = parse_cisco_config("line vty 0 4\n transport input ssh\nline vty 5 15\n transport input telnet ssh\n")
+    mapper = CiscoSecurityFactMapper()
+    facts = [fact for command in commands for fact in mapper.map_commands(command)]
+    findings = ComplianceEngine().evaluate_all(facts)
+    vty_findings = [item for item in findings if item.rule_id == "CISCO-VTY-SSH-001"]
+
+    assert [(item.result, item.evidence.line_start, item.evidence.exact_text) for item in vty_findings] == [
+        (FindingResult.PASS, 2, "transport input ssh"),
+        (FindingResult.FAIL, 4, "transport input telnet ssh"),
+    ]
+
+
 def test_missing_aaa_fact_is_manual():
     findings = ComplianceEngine().evaluate_all([fact(2)])
     aaa_finding = next(item for item in findings if item.rule_id == "CISCO-AAA-001")

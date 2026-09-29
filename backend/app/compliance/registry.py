@@ -39,6 +39,22 @@ _REQUIREMENTS = (
         description="Enable aaa new-model for centralized authentication, authorization, and accounting.",
         remediation="aaa new-model",
     ),
+    Requirement(
+        requirement_id="CISCO-VTY-SSH-001",
+        framework=Framework.CIS,
+        framework_version="2.2.1",
+        vendor="cisco",
+        platform="ios-xe",
+        security_concept="VTY_TRANSPORT",
+        property="allowed_protocols",
+        operator="EQUALS",
+        expected_value=["ssh"],
+        severity=FindingSeverity.MEDIUM,
+        source_ref="1.2.2",
+        verification_status=VerificationStatus.VERIFIED,
+        description="Set transport input ssh for line vty connections.",
+        remediation="Configure VTY transport input to permit SSH only.",
+    ),
 )
 
 _MAPPINGS = (

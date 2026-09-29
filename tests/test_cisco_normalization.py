@@ -84,6 +84,42 @@ def test_parent_context_and_command_evidence_are_preserved():
     assert fact.evidence.exact_text == "transport input ssh"
 
 
+@pytest.mark.parametrize(
+    ("raw", "protocols"),
+    [
+        ("transport input ssh", ["ssh"]),
+        ("transport input telnet", ["telnet"]),
+        ("transport input telnet ssh", ["telnet", "ssh"]),
+    ],
+)
+def test_vty_transport_mapping_preserves_protocol_order_and_evidence(raw, protocols):
+    command = parsed(raw, "line vty 0 4", 22, 23)
+    fact = CiscoSecurityFactMapper().map_vty_transport(command)
+
+    assert fact.security_concept == "VTY_TRANSPORT"
+    assert fact.property == "allowed_protocols"
+    assert fact.value == protocols
+    assert fact.parent_context == "line vty 0 4"
+    assert fact.evidence.line_start == 22
+    assert fact.evidence.line_end == 23
+    assert fact.evidence.exact_text == raw
+    assert fact.confidence == 1.0
+    assert fact.mapping_source == MAPPING_SOURCE
+
+
+def test_vty_transport_mapping_is_not_emitted_outside_vty_context():
+    command = parsed("transport input ssh", "interface GigabitEthernet0/1")
+
+    assert CiscoSecurityFactMapper().map_vty_transport(command) is None
+
+
+def test_map_commands_preserves_existing_telnet_and_adds_vty_fact():
+    command = parsed("transport input telnet ssh", "line vty 0 4")
+    facts = CiscoSecurityFactMapper().map_commands(command)
+
+    assert [fact.security_concept for fact in facts] == ["TELNET_ACCESS", "VTY_TRANSPORT"]
+
+
 def test_multiline_parser_evidence_preserves_source_text_and_range():
     commands = parse_cisco_config("hostname R1\nbanner login ^\nAUTHORIZED\n^\n")
     banner = commands[1]

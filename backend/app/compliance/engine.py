@@ -132,6 +132,46 @@ class CiscoAAA001Rule:
         )
 
 
+class CiscoVTYSSH001Rule:
+    """Evaluate CISCO-VTY-SSH-001 for one VTY transport fact."""
+
+    rule_id = "CISCO-VTY-SSH-001"
+    expected_value = ["ssh"]
+    severity = FindingSeverity.MEDIUM
+
+    def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
+        if fact.security_concept != "VTY_TRANSPORT" or fact.property != "allowed_protocols":
+            return None
+
+        if fact.value is None:
+            result = FindingResult.MANUAL
+            title = "VTY SSH-only transport requires manual verification"
+            description = "The allowed VTY transport protocols are unresolved."
+            remediation = "Configure VTY transport input to permit SSH only."
+        elif fact.value == self.expected_value:
+            result = FindingResult.PASS
+            title = "VTY transport permits SSH only"
+            description = "The VTY transport configuration permits SSH and no other protocol."
+            remediation = None
+        else:
+            result = FindingResult.FAIL
+            title = "VTY transport permits protocols other than SSH"
+            description = "The VTY transport configuration does not restrict access to SSH only."
+            remediation = "Configure VTY transport input to permit SSH only."
+
+        return Finding(
+            rule_id=self.rule_id,
+            result=result,
+            severity=self.severity,
+            observed_value=fact.value,
+            expected_value=self.expected_value,
+            evidence=fact.evidence,
+            title=title,
+            description=description,
+            remediation=remediation,
+        )
+
+
 class ComplianceEngine:
     """Select and run deterministic compliance rules over SecurityFacts."""
 
@@ -139,6 +179,7 @@ class ComplianceEngine:
         self._ssh_rule = CiscoSSH001Rule()
         self._telnet_rule = CiscoTelnet001Rule()
         self._aaa_rule = CiscoAAA001Rule()
+        self._vty_ssh_rule = CiscoVTYSSH001Rule()
 
     def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
         """Evaluate one fact; unrelated facts do not produce findings."""
@@ -146,6 +187,7 @@ class ComplianceEngine:
             self._ssh_rule.evaluate(fact)
             or self._telnet_rule.evaluate(fact)
             or self._aaa_rule.evaluate(fact)
+            or self._vty_ssh_rule.evaluate(fact)
         )
 
     def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
@@ -167,6 +209,11 @@ class ComplianceEngine:
             for fact in fact_list
         ):
             findings.append(self._aaa_manual_absence_finding())
+        if not any(
+            fact.security_concept == "VTY_TRANSPORT" and fact.property == "allowed_protocols"
+            for fact in fact_list
+        ):
+            findings.append(self._vty_ssh_manual_absence_finding())
         return findings
 
     @staticmethod
@@ -212,4 +259,18 @@ class ComplianceEngine:
             title="AAA configuration could not be determined",
             description="AAA configuration could not be determined from the available configuration evidence.",
             remediation="Verify that aaa new-model is enabled.",
+        )
+
+    @staticmethod
+    def _vty_ssh_manual_absence_finding() -> Finding:
+        return Finding(
+            rule_id="CISCO-VTY-SSH-001",
+            result=FindingResult.MANUAL,
+            severity=FindingSeverity.MEDIUM,
+            observed_value=None,
+            expected_value=["ssh"],
+            evidence=Evidence(line_start=1, line_end=1, exact_text=""),
+            title="VTY SSH-only transport could not be determined",
+            description="VTY transport configuration could not be determined from the available evidence.",
+            remediation="Configure VTY transport input to permit SSH only.",
         )
