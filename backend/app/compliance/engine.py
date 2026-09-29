@@ -92,16 +92,61 @@ class CiscoTelnet001Rule:
         )
 
 
+class CiscoAAA001Rule:
+    """Evaluate CISCO-AAA-001 for one applicable AAA fact."""
+
+    rule_id = "CISCO-AAA-001"
+    expected_value = "aaa"
+    severity = FindingSeverity.MEDIUM
+
+    def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
+        if fact.security_concept != "AAA" or fact.property != "authentication_mode":
+            return None
+
+        if fact.value is None:
+            result = FindingResult.MANUAL
+            title = "AAA configuration requires manual verification"
+            description = "An AAA fact was found, but its authentication mode is unresolved."
+            remediation = "Verify that aaa new-model is enabled."
+        elif fact.value == self.expected_value:
+            result = FindingResult.PASS
+            title = "AAA new-model is enabled"
+            description = "The configuration enables aaa new-model."
+            remediation = None
+        else:
+            result = FindingResult.FAIL
+            title = "AAA new-model is not enabled"
+            description = 'The observed AAA authentication mode does not equal "aaa".'
+            remediation = "aaa new-model"
+
+        return Finding(
+            rule_id=self.rule_id,
+            result=result,
+            severity=self.severity,
+            observed_value=fact.value,
+            expected_value=self.expected_value,
+            evidence=fact.evidence,
+            title=title,
+            description=description,
+            remediation=remediation,
+        )
+
+
 class ComplianceEngine:
     """Select and run deterministic compliance rules over SecurityFacts."""
 
     def __init__(self) -> None:
         self._ssh_rule = CiscoSSH001Rule()
         self._telnet_rule = CiscoTelnet001Rule()
+        self._aaa_rule = CiscoAAA001Rule()
 
     def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
         """Evaluate one fact; unrelated facts do not produce findings."""
-        return self._ssh_rule.evaluate(fact) or self._telnet_rule.evaluate(fact)
+        return (
+            self._ssh_rule.evaluate(fact)
+            or self._telnet_rule.evaluate(fact)
+            or self._aaa_rule.evaluate(fact)
+        )
 
     def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
         """Evaluate each applicable fact, or MANUAL when SSH evidence is absent."""
@@ -117,6 +162,11 @@ class ComplianceEngine:
             for fact in fact_list
         ):
             findings.append(self._telnet_manual_absence_finding())
+        if not any(
+            fact.security_concept == "AAA" and fact.property == "authentication_mode"
+            for fact in fact_list
+        ):
+            findings.append(self._aaa_manual_absence_finding())
         return findings
 
     @staticmethod
@@ -148,4 +198,18 @@ class ComplianceEngine:
             title="Telnet access could not be determined",
             description="Telnet access could not be determined from the available configuration evidence.",
             remediation="Verify that VTY lines permit SSH only and do not permit Telnet.",
+        )
+
+    @staticmethod
+    def _aaa_manual_absence_finding() -> Finding:
+        return Finding(
+            rule_id="CISCO-AAA-001",
+            result=FindingResult.MANUAL,
+            severity=FindingSeverity.MEDIUM,
+            observed_value=None,
+            expected_value="aaa",
+            evidence=Evidence(line_start=1, line_end=1, exact_text=""),
+            title="AAA configuration could not be determined",
+            description="AAA configuration could not be determined from the available configuration evidence.",
+            remediation="Verify that aaa new-model is enabled.",
         )

@@ -23,6 +23,22 @@ _REQUIREMENTS = (
         description="SSH protocol version must be 2.",
         remediation="ip ssh version 2",
     ),
+    Requirement(
+        requirement_id="CISCO-AAA-001",
+        framework=Framework.CIS,
+        framework_version="2.2.1",
+        vendor="cisco",
+        platform="ios-xe",
+        security_concept="AAA",
+        property="authentication_mode",
+        operator="EQUALS",
+        expected_value="aaa",
+        severity=FindingSeverity.MEDIUM,
+        source_ref="1.1.1",
+        verification_status=VerificationStatus.VERIFIED,
+        description="Enable aaa new-model for centralized authentication, authorization, and accounting.",
+        remediation="aaa new-model",
+    ),
 )
 
 _MAPPINGS = (

@@ -45,7 +45,11 @@ def test_unacceptable_ssh_versions_fail(value):
 
 
 def test_missing_ssh_fact_is_manual_without_fabricated_command_evidence():
-    finding = ComplianceEngine().evaluate_all([fact(2, concept="AAA", property_name="authentication_mode")])[0]
+    finding = next(
+        item
+        for item in ComplianceEngine().evaluate_all([fact(2, concept="AAA", property_name="authentication_mode")])
+        if item.rule_id == "CISCO-SSH-001"
+    )
     assert finding.result is FindingResult.MANUAL
     assert finding.observed_value is None
     assert finding.expected_value == 2
@@ -69,7 +73,7 @@ def test_unresolved_ssh_value_is_manual():
 
 def test_wrong_concept_or_property_produces_no_ssh_finding():
     engine = ComplianceEngine()
-    assert engine.evaluate(fact(2, concept="AAA", property_name="authentication_mode")) is None
+    assert engine.evaluate(fact(2, concept="NTP_AUTHENTICATION", property_name="enabled")) is None
     assert engine.evaluate(fact(2, property_name="enabled")) is None
 
 
@@ -125,6 +129,43 @@ def test_telnet_disabled_passes_with_evidence():
     assert finding.evidence.line_start == 2
     assert finding.evidence.exact_text == "transport input ssh"
     assert finding.remediation is None
+
+
+def test_aaa_new_model_passes_with_exact_evidence():
+    command = ParsedCommand(raw_command="aaa new-model", line_start=14, line_end=14)
+    security_fact = CiscoSecurityFactMapper().map(command)
+    finding = ComplianceEngine().evaluate(security_fact)
+
+    assert finding.rule_id == "CISCO-AAA-001"
+    assert finding.result is FindingResult.PASS
+    assert finding.severity is FindingSeverity.MEDIUM
+    assert finding.evidence.line_start == 14
+    assert finding.evidence.line_end == 14
+    assert finding.evidence.exact_text == "aaa new-model"
+
+
+def test_missing_aaa_fact_is_manual():
+    findings = ComplianceEngine().evaluate_all([fact(2)])
+    aaa_finding = next(item for item in findings if item.rule_id == "CISCO-AAA-001")
+
+    assert aaa_finding.result is FindingResult.MANUAL
+    assert aaa_finding.observed_value is None
+    assert aaa_finding.expected_value == "aaa"
+    assert aaa_finding.evidence.exact_text == ""
+
+
+def test_unrelated_aaa_value_does_not_pass():
+    unrelated = SecurityFact(
+        vendor="cisco", platform="ios-xe", raw_command="aaa authorization",
+        security_domain="AUTHENTICATION", security_concept="AAA",
+        property="authentication_mode", value="other", confidence=1.0,
+        mapping_source="test", evidence=Evidence(line_start=15, line_end=15, exact_text="aaa authorization"),
+    )
+    finding = ComplianceEngine().evaluate(unrelated)
+
+    assert finding.result is FindingResult.FAIL
+    assert finding.rule_id == "CISCO-AAA-001"
+    assert finding.evidence.exact_text == "aaa authorization"
 
 
 @pytest.mark.parametrize("raw", ["transport input telnet", "transport input telnet ssh"])

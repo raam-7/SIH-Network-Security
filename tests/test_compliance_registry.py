@@ -29,8 +29,8 @@ def test_unknown_requirement_returns_none():
 
 
 def test_requirement_filters_are_deterministic():
-    assert len(get_requirements(framework=Framework.CIS)) == 1
-    assert len(get_requirements(vendor="cisco", platform="ios-xe")) == 1
+    assert len(get_requirements(framework=Framework.CIS)) == 2
+    assert len(get_requirements(vendor="cisco", platform="ios-xe")) == 2
     assert get_requirements(framework=Framework.NIST) == []
 
 
@@ -68,3 +68,15 @@ def test_existing_requirement_does_not_change_compliance_rule_behavior():
         evidence=Evidence(line_start=1, line_end=1, exact_text="ip ssh version 2"),
     )
     assert ComplianceEngine().evaluate(fact).result.value == "PASS"
+
+
+def test_aaa_requirement_is_source_backed_and_typed():
+    requirement = get_requirement("CISCO-AAA-001")
+
+    assert requirement is not None
+    assert requirement.framework_version == "2.2.1"
+    assert requirement.source_ref == "1.1.1"
+    assert requirement.security_concept == "AAA"
+    assert requirement.property == "authentication_mode"
+    assert requirement.expected_value == "aaa"
+    assert requirement.verification_status is VerificationStatus.VERIFIED
