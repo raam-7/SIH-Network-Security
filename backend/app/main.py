@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from backend.app.api.audit import router as audit_router
+from backend.app.api.human_review import router as human_review_router
 
 app = FastAPI(
     title="SIH Network Security Compliance Auditor",
@@ -8,6 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(audit_router, prefix="/api/v1")
+app.include_router(human_review_router, prefix="/api/v1")
 
 
 @app.get("/health")
