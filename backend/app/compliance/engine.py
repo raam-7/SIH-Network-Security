@@ -172,6 +172,46 @@ class CiscoVTYSSH001Rule:
         )
 
 
+class CiscoSSHTimeout001Rule:
+    """Evaluate CISCO-SSH-TIMEOUT-001 using a numeric upper bound."""
+
+    rule_id = "CISCO-SSH-TIMEOUT-001"
+    expected_value = 60
+    severity = FindingSeverity.MEDIUM
+
+    def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
+        if fact.security_concept != "SSH_TIMEOUT" or fact.property != "timeout_seconds":
+            return None
+
+        if fact.value is None or isinstance(fact.value, bool) or not isinstance(fact.value, int):
+            result = FindingResult.MANUAL
+            title = "SSH timeout requires manual verification"
+            description = "The SSH timeout value is unresolved or not a valid numeric value."
+            remediation = "Verify or configure SSH timeout to 60 seconds or less."
+        elif fact.value <= self.expected_value:
+            result = FindingResult.PASS
+            title = "SSH timeout is within the allowed limit"
+            description = "The configured SSH timeout is 60 seconds or less."
+            remediation = None
+        else:
+            result = FindingResult.FAIL
+            title = "SSH timeout exceeds the allowed limit"
+            description = "The configured SSH timeout exceeds the maximum of 60 seconds."
+            remediation = "ip ssh time-out 60"
+
+        return Finding(
+            rule_id=self.rule_id,
+            result=result,
+            severity=self.severity,
+            observed_value=fact.value,
+            expected_value=self.expected_value,
+            evidence=fact.evidence,
+            title=title,
+            description=description,
+            remediation=remediation,
+        )
+
+
 class ComplianceEngine:
     """Select and run deterministic compliance rules over SecurityFacts."""
 
@@ -180,6 +220,7 @@ class ComplianceEngine:
         self._telnet_rule = CiscoTelnet001Rule()
         self._aaa_rule = CiscoAAA001Rule()
         self._vty_ssh_rule = CiscoVTYSSH001Rule()
+        self._ssh_timeout_rule = CiscoSSHTimeout001Rule()
 
     def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
         """Evaluate one fact; unrelated facts do not produce findings."""
@@ -188,6 +229,7 @@ class ComplianceEngine:
             or self._telnet_rule.evaluate(fact)
             or self._aaa_rule.evaluate(fact)
             or self._vty_ssh_rule.evaluate(fact)
+            or self._ssh_timeout_rule.evaluate(fact)
         )
 
     def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
@@ -214,6 +256,11 @@ class ComplianceEngine:
             for fact in fact_list
         ):
             findings.append(self._vty_ssh_manual_absence_finding())
+        if not any(
+            fact.security_concept == "SSH_TIMEOUT" and fact.property == "timeout_seconds"
+            for fact in fact_list
+        ):
+            findings.append(self._ssh_timeout_manual_absence_finding())
         return findings
 
     @staticmethod
@@ -273,4 +320,18 @@ class ComplianceEngine:
             title="VTY SSH-only transport could not be determined",
             description="VTY transport configuration could not be determined from the available evidence.",
             remediation="Configure VTY transport input to permit SSH only.",
+        )
+
+    @staticmethod
+    def _ssh_timeout_manual_absence_finding() -> Finding:
+        return Finding(
+            rule_id="CISCO-SSH-TIMEOUT-001",
+            result=FindingResult.MANUAL,
+            severity=FindingSeverity.MEDIUM,
+            observed_value=None,
+            expected_value=60,
+            evidence=Evidence(line_start=1, line_end=1, exact_text=""),
+            title="SSH timeout could not be determined",
+            description="SSH timeout could not be determined from the available configuration evidence.",
+            remediation="Verify or configure SSH timeout to 60 seconds or less.",
         )

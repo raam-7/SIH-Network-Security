@@ -21,6 +21,24 @@ def test_ssh_version_mapping(raw, value):
     assert fact.value == value
 
 
+@pytest.mark.parametrize(("raw", "value"), [("ip ssh time-out 60", 60), ("ip ssh time-out 30", 30)])
+def test_ssh_timeout_mapping(raw, value):
+    fact = CiscoSecurityFactMapper().map(parsed(raw, start=12))
+
+    assert fact.security_concept == "SSH_TIMEOUT"
+    assert fact.property == "timeout_seconds"
+    assert fact.value == value
+    assert fact.evidence.line_start == 12
+    assert fact.evidence.exact_text == raw
+
+
+def test_malformed_ssh_timeout_is_not_mapped():
+    mapper = CiscoSecurityFactMapper()
+    assert mapper.map(parsed("ip ssh time-out abc")) is None
+    assert mapper.map(parsed("ip ssh time-out")) is None
+    assert mapper.map(parsed("ip ssh time-out -1")) is None
+
+
 def test_unknown_and_unrelated_commands_return_none():
     mapper = CiscoSecurityFactMapper()
     assert mapper.map_command(parsed("some future Cisco command")) is None

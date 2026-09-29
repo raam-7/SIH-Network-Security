@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from .requirements import Framework, FrameworkMapping, Requirement, VerificationStatus
+from .requirements import Framework, FrameworkMapping, Requirement, RequirementOperator, VerificationStatus
 from backend.app.schemas import FindingSeverity
 
 
@@ -15,7 +15,7 @@ _REQUIREMENTS = (
         platform="ios-xe",
         security_concept="SSH_VERSION",
         property="protocol_version",
-        operator="EQUALS",
+        operator=RequirementOperator.EQUALS,
         expected_value=2,
         severity=FindingSeverity.MEDIUM,
         source_ref="TO_BE_VERIFIED",
@@ -31,7 +31,7 @@ _REQUIREMENTS = (
         platform="ios-xe",
         security_concept="AAA",
         property="authentication_mode",
-        operator="EQUALS",
+        operator=RequirementOperator.EQUALS,
         expected_value="aaa",
         severity=FindingSeverity.MEDIUM,
         source_ref="1.1.1",
@@ -47,13 +47,29 @@ _REQUIREMENTS = (
         platform="ios-xe",
         security_concept="VTY_TRANSPORT",
         property="allowed_protocols",
-        operator="EQUALS",
+        operator=RequirementOperator.EQUALS,
         expected_value=["ssh"],
         severity=FindingSeverity.MEDIUM,
         source_ref="1.2.2",
         verification_status=VerificationStatus.VERIFIED,
         description="Set transport input ssh for line vty connections.",
         remediation="Configure VTY transport input to permit SSH only.",
+    ),
+    Requirement(
+        requirement_id="CISCO-SSH-TIMEOUT-001",
+        framework=Framework.CIS,
+        framework_version="2.2.1",
+        vendor="cisco",
+        platform="ios-xe",
+        security_concept="SSH_TIMEOUT",
+        property="timeout_seconds",
+        operator=RequirementOperator.LESS_THAN_OR_EQUAL,
+        expected_value=60,
+        severity=FindingSeverity.MEDIUM,
+        source_ref="2.1.1.1.4",
+        verification_status=VerificationStatus.VERIFIED,
+        description="SSH timeout must be less than or equal to 60 seconds.",
+        remediation="ip ssh time-out 60",
     ),
 )
 

@@ -20,6 +20,11 @@ class VerificationStatus(str, Enum):
     TO_BE_VERIFIED = "TO_BE_VERIFIED"
 
 
+class RequirementOperator(str, Enum):
+    EQUALS = "EQUALS"
+    LESS_THAN_OR_EQUAL = "LESS_THAN_OR_EQUAL"
+
+
 class Requirement(BaseModel):
     requirement_id: str
     framework: Framework
@@ -28,7 +33,7 @@ class Requirement(BaseModel):
     platform: str
     security_concept: str
     property: str
-    operator: str
+    operator: RequirementOperator
     expected_value: Any
     severity: FindingSeverity
     source_ref: str

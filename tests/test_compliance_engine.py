@@ -167,6 +167,40 @@ def test_vty_ssh_only_rule_evaluates_allowed_protocols(protocols, result):
         assert finding.remediation == "Configure VTY transport input to permit SSH only."
 
 
+@pytest.mark.parametrize("seconds", [1, 30, 60])
+def test_ssh_timeout_at_or_below_limit_passes(seconds):
+    finding = ComplianceEngine().evaluate(fact(seconds, concept="SSH_TIMEOUT", property_name="timeout_seconds"))
+
+    assert finding.rule_id == "CISCO-SSH-TIMEOUT-001"
+    assert finding.result is FindingResult.PASS
+    assert finding.remediation is None
+
+
+@pytest.mark.parametrize("seconds", [61, 120, 300])
+def test_ssh_timeout_above_limit_fails(seconds):
+    finding = ComplianceEngine().evaluate(fact(seconds, concept="SSH_TIMEOUT", property_name="timeout_seconds"))
+
+    assert finding.result is FindingResult.FAIL
+    assert finding.remediation == "ip ssh time-out 60"
+
+
+def test_ssh_timeout_unresolved_and_absent_are_manual():
+    unresolved = fact(None, concept="SSH_TIMEOUT", property_name="timeout_seconds", line=18)
+    finding = ComplianceEngine().evaluate(unresolved)
+    absent = next(item for item in ComplianceEngine().evaluate_all([fact(2)]) if item.rule_id == "CISCO-SSH-TIMEOUT-001")
+
+    assert finding.result is FindingResult.MANUAL
+    assert finding.evidence.line_start == 18
+    assert absent.result is FindingResult.MANUAL
+    assert absent.evidence.exact_text == ""
+
+
+def test_ssh_timeout_rejects_non_numeric_observed_values():
+    finding = ComplianceEngine().evaluate(fact("60", concept="SSH_TIMEOUT", property_name="timeout_seconds"))
+
+    assert finding.result is FindingResult.MANUAL
+
+
 def test_vty_ssh_only_unresolved_and_absent_are_manual():
     unresolved = SecurityFact(
         vendor="cisco", platform="ios-xe", raw_command="transport input unknown",

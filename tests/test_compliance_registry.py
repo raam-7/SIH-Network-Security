@@ -29,8 +29,8 @@ def test_unknown_requirement_returns_none():
 
 
 def test_requirement_filters_are_deterministic():
-    assert len(get_requirements(framework=Framework.CIS)) == 3
-    assert len(get_requirements(vendor="cisco", platform="ios-xe")) == 3
+    assert len(get_requirements(framework=Framework.CIS)) == 4
+    assert len(get_requirements(vendor="cisco", platform="ios-xe")) == 4
     assert get_requirements(framework=Framework.NIST) == []
 
 
@@ -92,4 +92,16 @@ def test_vty_ssh_requirement_is_source_backed_and_typed():
     assert requirement.security_concept == "VTY_TRANSPORT"
     assert requirement.property == "allowed_protocols"
     assert requirement.expected_value == ["ssh"]
+    assert requirement.verification_status is VerificationStatus.VERIFIED
+
+
+def test_ssh_timeout_requirement_is_source_backed_and_relational():
+    requirement = get_requirement("CISCO-SSH-TIMEOUT-001")
+
+    assert requirement is not None
+    assert requirement.framework_version == "2.2.1"
+    assert requirement.source_ref == "2.1.1.1.4"
+    assert requirement.security_concept == "SSH_TIMEOUT"
+    assert requirement.operator == "LESS_THAN_OR_EQUAL"
+    assert requirement.expected_value == 60
     assert requirement.verification_status is VerificationStatus.VERIFIED

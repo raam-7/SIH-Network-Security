@@ -10,6 +10,7 @@ from backend.app.schemas import Evidence, ParsedCommand, SecurityFact
 
 MAPPING_SOURCE = "deterministic_mapping"
 _SSH_VERSION = re.compile(r"^ip\s+ssh\s+version\s+([12])$", re.IGNORECASE)
+_SSH_TIMEOUT = re.compile(r"^ip\s+ssh\s+time-out\s+(\d+)$", re.IGNORECASE)
 _TRANSPORT_INPUT = re.compile(r"^transport\s+input\s+(.+)$", re.IGNORECASE)
 _LOGGING_HOST = re.compile(r"^(no\s+)?logging\s+host\s+(\S+)$", re.IGNORECASE)
 
@@ -29,7 +30,13 @@ class CiscoSecurityFactMapper:
             domain, concept, property_name, value = (
                 "REMOTE_MANAGEMENT", "SSH_VERSION", "protocol_version", int(ssh_match.group(1))
             )
-        elif lower == "aaa new-model":
+        else:
+            timeout_match = _SSH_TIMEOUT.fullmatch(normalized)
+            if timeout_match:
+                domain, concept, property_name, value = (
+                    "REMOTE_MANAGEMENT", "SSH_TIMEOUT", "timeout_seconds", int(timeout_match.group(1))
+                )
+        if concept is None and lower == "aaa new-model":
             domain, concept, property_name, value = (
                 "AUTHENTICATION", "AAA", "authentication_mode", "aaa"
             )

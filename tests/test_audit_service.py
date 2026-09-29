@@ -15,6 +15,17 @@ def test_ssh_version_two_audits_to_pass_and_non_actionable_risk():
     assert result.risk_assessments[0].remediation_mode is RemediationMode.NONE
 
 
+def test_ssh_timeout_audit_integrates_pass_and_fail():
+    passing = AuditService().audit_cisco_config("ip ssh time-out 60\n")
+    failing = AuditService().audit_cisco_config("ip ssh time-out 120\n")
+
+    pass_finding = next(item for item in passing.findings if item.rule_id == "CISCO-SSH-TIMEOUT-001")
+    fail_finding = next(item for item in failing.findings if item.rule_id == "CISCO-SSH-TIMEOUT-001")
+    assert pass_finding.result is FindingResult.PASS
+    assert fail_finding.result is FindingResult.FAIL
+    assert fail_finding.evidence.exact_text == "ip ssh time-out 120"
+
+
 def test_ssh_version_one_preserves_finding_and_risk_traceability():
     result = AuditService().audit_cisco_config("hostname R1\nip ssh version 1\n")
     finding = result.findings[0]
