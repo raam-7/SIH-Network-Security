@@ -8,6 +8,7 @@ from backend.app.db import get_session
 from backend.app.schemas.audit_history import AuditHistoryPagination, AuditHistoryResponse
 from backend.app.schemas.audit_report import AuditOverallStatus
 from backend.app.services import AuditReportService, AuditService
+from backend.app.services.audit import hash_configuration
 from backend.app.services.audit_repository import AuditRepository
 
 router = APIRouter(prefix="/audits", tags=["audits"])
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/audits", tags=["audits"])
 def create_audit(request: CiscoAuditRequest, session: Session = Depends(get_session)):
     try:
         report = AuditReportService().build_report(AuditService().audit_cisco_config(request.configuration))
+        report.configuration_hash = hash_configuration(request.configuration)
         audit_id = AuditRepository(session).save_report(report)
         return {"audit_id": str(audit_id), "report": report}
     except ValueError as exc:

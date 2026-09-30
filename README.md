@@ -38,6 +38,7 @@ Dashboard / Report
 - Cisco IOS/IOS-XE parsing, deterministic compliance, evidence, risk/remediation, reporting, and PostgreSQL audit persistence are implemented.
 - The audit-history API provides lightweight paginated summaries and complete persisted report retrieval.
 - Audit-history provides lightweight items, exact vendor/platform/status filters, pagination metadata, matching totals, and a `has_more` indicator.
+- Persisted audits include a SHA-256 fingerprint of the submitted configuration for input provenance; raw configuration text is not persisted by the audit repository.
 - Juniper and Fortinet support are planned.
 - AI/RAG components are limited to the project’s existing assistive/prototype scope; they are not the final compliance authority and full production AI integration is not claimed.
 - pgvector and complete CIS/NIST framework coverage are not implemented or claimed.

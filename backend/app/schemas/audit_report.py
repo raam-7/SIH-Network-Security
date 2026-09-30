@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from backend.app.risk import RemediationMode
 from .evidence import Evidence
@@ -48,3 +48,11 @@ class AuditReport(BaseModel):
     findings: list[AuditReportFinding] = Field(default_factory=list)
     parsed_command_count: int = Field(..., ge=0)
     security_fact_count: int = Field(..., ge=0)
+    configuration_hash: str | None = None
+
+    @field_validator("configuration_hash")
+    @classmethod
+    def validate_configuration_hash(cls, value: str | None) -> str | None:
+        if value is not None and (len(value) != 64 or any(char not in "0123456789abcdef" for char in value)):
+            raise ValueError("configuration_hash must be 64 lowercase hexadecimal characters")
+        return value

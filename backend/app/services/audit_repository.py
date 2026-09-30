@@ -24,6 +24,7 @@ class AuditRepository:
             informational=report.summary.informational,
             parsed_command_count=report.parsed_command_count,
             security_fact_count=report.security_fact_count,
+            configuration_hash=report.configuration_hash,
         )
         for sequence, item in enumerate(report.findings):
             finding = FindingORM(
@@ -106,5 +107,5 @@ class AuditRepository:
                 failed=audit.failed, manual=audit.manual, informational=audit.informational,
                 overall_status=AuditOverallStatus(audit.overall_status)),
             findings=findings, parsed_command_count=audit.parsed_command_count,
-            security_fact_count=audit.security_fact_count,
+            security_fact_count=audit.security_fact_count, configuration_hash=audit.configuration_hash,
         )

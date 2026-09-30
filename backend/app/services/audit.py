@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from pydantic import BaseModel, Field
 
 from backend.app.compliance import ComplianceEngine
@@ -9,6 +11,11 @@ from backend.app.normalization.cisco import CiscoSecurityFactMapper
 from backend.app.risk import RiskAssessment, RiskEngine
 from backend.app.schemas import Finding
 from parsers.cisco import parse_cisco_config
+
+
+def hash_configuration(configuration: str) -> str:
+    """Return the SHA-256 fingerprint of the exact configuration text."""
+    return hashlib.sha256(configuration.encode("utf-8")).hexdigest()
 
 
 class AuditResult(BaseModel):

@@ -2,6 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.app.db.base import Base
+from backend.app.db.models import AuditORM
+from backend.app.services.audit import hash_configuration
 from backend.app.services import AuditReportService, AuditRepository, AuditService
 
 
@@ -30,6 +32,20 @@ def test_report_round_trip_preserves_summary_evidence_and_risk():
     assert restored.findings[0].evidence == report.findings[0].evidence
     assert restored.findings[0].remediation_mode == report.findings[0].remediation_mode
     assert restored.findings[0].risk_level == report.findings[0].risk_level
+
+
+def test_configuration_hash_round_trip_and_raw_configuration_is_not_persisted():
+    configuration = "ip ssh version 2\n"
+    report = audit_report(configuration)
+    report.configuration_hash = hash_configuration(configuration)
+    repo = repository()
+    audit_id = repo.save_report(report)
+
+    restored = repo.get_report(audit_id)
+    assert restored.configuration_hash == hash_configuration(configuration)
+    audit = repo.session.get(AuditORM, audit_id)
+    assert audit.configuration_hash == restored.configuration_hash
+    assert not hasattr(audit, "configuration")
 
 
 def test_multiple_audits_list_in_created_order_and_missing_returns_none():

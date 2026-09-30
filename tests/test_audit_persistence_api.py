@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
+import hashlib
 
 import pytest
 from fastapi.testclient import TestClient
@@ -54,6 +55,23 @@ def test_persistence_api_create_get_and_list():
     assert fetched.json()["summary"]["overall_status"] == "REVIEW_REQUIRED"
     assert listed.status_code == 200
     assert listed.json()["items"]
+
+
+def test_api_generates_exact_server_side_configuration_hash_and_round_trips():
+    configuration = "ip ssh version 2\n"
+    response = client.post("/api/v1/audits", json={"configuration": configuration})
+    assert response.status_code == 200
+    audit_id = response.json()["audit_id"]
+    expected = hashlib.sha256(configuration.encode("utf-8")).hexdigest()
+
+    report = response.json()["report"]
+    assert report["configuration_hash"] == expected
+    assert len(report["configuration_hash"]) == 64
+    assert all(char in "0123456789abcdef" for char in report["configuration_hash"])
+    detail = client.get(f"/api/v1/audits/{audit_id}")
+    assert detail.json()["configuration_hash"] == expected
+    history = client.get("/api/v1/audits").json()
+    assert "configuration_hash" not in history["items"][0]
 
 
 def test_persistence_api_validates_input_and_missing_id():
