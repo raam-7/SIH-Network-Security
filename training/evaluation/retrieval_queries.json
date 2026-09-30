@@ -1,0 +1,26 @@
+[
+  {
+    "query": "ip ssh version 2",
+    "expected_concept": "SSH_VERSION"
+  },
+  {
+    "query": "SSH should use protocol version 2",
+    "expected_concept": "SSH_VERSION"
+  },
+  {
+    "query": "enable AAA authentication",
+    "expected_concept": "AAA"
+  },
+  {
+    "query": "transport input ssh",
+    "expected_concept": "TELNET_ACCESS"
+  },
+  {
+    "query": "set SSH authentication retry limit to 5",
+    "expected_concept": "SSH_AUTH_RETRIES"
+  },
+  {
+    "query": "configure rainbow firewall protection",
+    "expected_concept": null
+  }
+]

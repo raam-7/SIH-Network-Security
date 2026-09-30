@@ -1,0 +1,282 @@
+[
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh version 2",
+    "security_concept": "SSH_VERSION",
+    "property": "protocol_version",
+    "value": 2,
+    "source_file": "cisco_001.txt",
+    "evidence": {
+      "line_start": 167,
+      "line_end": 167
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "transport input ssh",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": false,
+    "source_file": "cisco_001.txt",
+    "evidence": {
+      "line_start": 318,
+      "line_end": 318
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "aaa new-model",
+    "security_concept": "AAA",
+    "property": "authentication_mode",
+    "value": "aaa",
+    "source_file": "cisco_001.txt",
+    "evidence": {
+      "line_start": 65,
+      "line_end": 65
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "aaa new-model",
+    "security_concept": "AAA",
+    "property": "authentication_mode",
+    "value": "aaa",
+    "source_file": "cisco_002_sanitized.txt",
+    "evidence": {
+      "line_start": 22,
+      "line_end": 22
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "transport input ssh",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": false,
+    "source_file": "cisco_002_sanitized.txt",
+    "evidence": {
+      "line_start": 240,
+      "line_end": 240
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh version 2",
+    "security_concept": "SSH_VERSION",
+    "property": "protocol_version",
+    "value": 2,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 126,
+      "line_end": 126
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "transport input ssh",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": false,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 400,
+      "line_end": 400
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "aaa new-model",
+    "security_concept": "AAA",
+    "property": "authentication_mode",
+    "value": "aaa",
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 31,
+      "line_end": 31
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios-xe",
+    "raw_command": "aaa new-model",
+    "security_concept": "AAA",
+    "property": "authentication_mode",
+    "value": "aaa",
+    "source_file": "cisco_005_sanitized.txt",
+    "evidence": {
+      "line_start": 33,
+      "line_end": 33
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios-xe",
+    "raw_command": "ip ssh version 2",
+    "security_concept": "SSH_VERSION",
+    "property": "protocol_version",
+    "value": 2,
+    "source_file": "cisco_005_sanitized.txt",
+    "evidence": {
+      "line_start": 199,
+      "line_end": 199
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "transport input ssh",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": false,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 410,
+      "line_end": 410
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "transport input ssh",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": false,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 419,
+      "line_end": 419
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios-xe",
+    "raw_command": "transport input all",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": true,
+    "source_file": "cisco_005_sanitized.txt",
+    "evidence": {
+      "line_start": 259,
+      "line_end": 259
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios-xe",
+    "raw_command": "transport input all",
+    "security_concept": "TELNET_ACCESS",
+    "property": "enabled",
+    "value": true,
+    "source_file": "cisco_005_sanitized.txt",
+    "evidence": {
+      "line_start": 261,
+      "line_end": 261
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh time-out 60",
+    "security_concept": "SSH_TIMEOUT",
+    "property": "timeout_seconds",
+    "value": 60,
+    "source_file": "cisco_002_sanitized.txt",
+    "evidence": {
+      "line_start": 186,
+      "line_end": 186
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh authentication-retries 5",
+    "security_concept": "SSH_AUTH_RETRIES",
+    "property": "retry_limit",
+    "value": 5,
+    "source_file": "cisco_002_sanitized.txt",
+    "evidence": {
+      "line_start": 187,
+      "line_end": 187
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh maxstartups 3",
+    "security_concept": "SSH_MAXSTARTUPS",
+    "property": "max_startups",
+    "value": 3,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 122,
+      "line_end": 122
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh authentication-retries 5",
+    "security_concept": "SSH_AUTH_RETRIES",
+    "property": "retry_limit",
+    "value": 5,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 123,
+      "line_end": 123
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh source-interface GigabitEthernet0/1",
+    "security_concept": "SSH_SOURCE_INTERFACE",
+    "property": "interface",
+    "value": "GigabitEthernet0/1",
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 124,
+      "line_end": 124
+    },
+    "human_verified": true
+  },
+  {
+    "vendor": "cisco",
+    "platform": "ios",
+    "raw_command": "ip ssh logging events",
+    "security_concept": "SSH_LOGGING",
+    "property": "enabled",
+    "value": true,
+    "source_file": "cisco_004_sanitized.txt",
+    "evidence": {
+      "line_start": 125,
+      "line_end": 125
+    },
+    "human_verified": true
+  }
+]
