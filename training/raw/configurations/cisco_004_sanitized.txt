@@ -153,10 +153,8 @@ crypto isakmp policy 10
  hash md5
  authentication pre-share
  group 5
-crypto isakmp key <Deleted> address 0.0.0.0 0.0.0.0
 
 crypto isakmp client configuration group domain
- key <Deleted>
  dns 192.168.0.9
  domain domain.com
  pool rapool
@@ -191,7 +189,6 @@ interface Tunnel0
  ip nhrp holdtime 300
  tunnel source GigabitEthernet0/0
  tunnel mode gre multipoint
- tunnel key <Deleted>
  tunnel protection ipsec profile GRE_TUNNEL_CRYPTO
 
 interface GigabitEthernet0/0
@@ -381,7 +378,6 @@ control-plane
 mgcp profile default
 
 line con 0
- password 7 <Deleted>
  logging synchronous
  length 45
 line aux 0

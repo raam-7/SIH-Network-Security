@@ -1,4 +1,4 @@
-ios_config "service password-encryption"
+ios_config "service password [REDACTED]"
 ios_config "no service config"
 ios_config "line con 0" "logging synchronous"
 puts -nonewline "Please enter the hostname of this box: "
@@ -18,14 +18,14 @@ ios_config "aaa authentication login default local"
 puts -nonewline "Please enter the username you would like to configure for this system: "
 flush stdout
 set username [ gets stdin ]
-puts -nonewline "Please enter the password for $username: "
+puts -nonewline "Please enter the password [REDACTED]"
 flush stdout
-set password [ gets stdin ]
-ios_config "username $username privilege 15 password $password"
-puts -nonewline "Please enter the enable password: "
+set password [REDACTED]
+ios_config "username $username privilege 15 password [REDACTED]"
+puts -nonewline "Please enter the enable password [REDACTED]"
 flush stdout
 set enable [ gets stdin ]
-ios_config "enable secret $enable"
+ios_config "enable secret [REDACTED]"
 puts -nonewline "Please enter the WAN IP address: "
 flush stdout
 set wan_ip [ gets stdin ]

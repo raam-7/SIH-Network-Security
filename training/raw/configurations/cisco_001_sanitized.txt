@@ -124,7 +124,7 @@ ipv6 dhcp pool DHCPv6
 !
 ipv6 multicast-routing
 !
-password encryption aes
+password [REDACTED]
 !
 ! ### For the following archive config to work, you must first create the
 ! ### directory. (see below)
@@ -150,7 +150,7 @@ object-group network BLACKBALLED
  host 1.1.1.1
  host 2.2.2.2
 !
-username $username privilege 15 secret 0 $password
+username $username privilege 15 secret [REDACTED]
 !
 ! ### Resilient Config rocks
 ! ### [http://bit.ly/1VKLkAc]
@@ -160,7 +160,7 @@ secure boot-config
 !
 ip ftp source-interface GigabitEthernet0/0.101
 ip ftp username $ftpUser
-ip ftp password 0 $ftpPassword
+ip ftp password [REDACTED]
 !
 ip ssh maxstartups 10
 ip ssh authentication-retries 5
