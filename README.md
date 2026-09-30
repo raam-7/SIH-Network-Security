@@ -34,10 +34,12 @@ Dashboard / Report
 
 ## Current development status
 
-- FastAPI backend is operational.
-- `/health` and Swagger documentation are available.
-- Cisco IOS/IOS-XE is the initial target.
-- AI, RAG, fine-tuning, PostgreSQL/pgvector, Juniper, Fortinet, and additional controls are not implemented yet.
+- FastAPI backend is operational, with `/health` and Swagger documentation available.
+- Cisco IOS/IOS-XE parsing, deterministic compliance, evidence, risk/remediation, reporting, and PostgreSQL audit persistence are implemented.
+- The audit-history API provides lightweight paginated summaries and complete persisted report retrieval.
+- Juniper and Fortinet support are planned.
+- AI/RAG components are limited to the project’s existing assistive/prototype scope; they are not the final compliance authority and full production AI integration is not claimed.
+- pgvector and complete CIS/NIST framework coverage are not implemented or claimed.
 
 ### Prototype compliance scope
 

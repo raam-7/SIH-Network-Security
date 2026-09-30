@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.db.models import AuditORM, FindingORM, RiskAssessmentORM
 from backend.app.schemas import Evidence, FindingResult, FindingSeverity
+from backend.app.schemas.audit_history import AuditHistorySummary
 from backend.app.schemas.audit_report import AuditOverallStatus, AuditReport, AuditReportFinding, AuditSummary
 
 
@@ -49,8 +50,32 @@ class AuditRepository:
         audit = self.session.get(AuditORM, audit_id)
         return self._to_report(audit) if audit else None
 
+    def list_summaries(self, limit: int = 50, offset: int = 0) -> list[AuditHistorySummary]:
+        statement = (
+            select(
+                AuditORM.id, AuditORM.vendor, AuditORM.platform, AuditORM.overall_status,
+                AuditORM.total_controls, AuditORM.passed, AuditORM.failed, AuditORM.manual,
+                AuditORM.informational, AuditORM.parsed_command_count,
+                AuditORM.security_fact_count, AuditORM.created_at,
+            )
+            .order_by(AuditORM.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return [AuditHistorySummary(
+            audit_id=row.id, vendor=row.vendor, platform=row.platform,
+            overall_status=AuditOverallStatus(row.overall_status),
+            total_controls=row.total_controls, passed=row.passed, failed=row.failed,
+            manual=row.manual, informational=row.informational,
+            parsed_command_count=row.parsed_command_count,
+            security_fact_count=row.security_fact_count, created_at=row.created_at,
+        ) for row in self.session.execute(statement)]
+
     def list_reports(self, limit: int = 50, offset: int = 0) -> list[AuditReport]:
-        audits = self.session.scalars(select(AuditORM).order_by(AuditORM.created_at.desc()).limit(limit).offset(offset)).all()
+        """Return complete reports for existing repository callers."""
+        audits = self.session.scalars(
+            select(AuditORM).order_by(AuditORM.created_at.desc()).limit(limit).offset(offset)
+        ).all()
         return [self._to_report(audit) for audit in audits]
 
     @staticmethod
