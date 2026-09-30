@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.app.db.models import AuditORM, FindingORM, RiskAssessmentORM
@@ -57,23 +57,22 @@ class AuditRepository:
         vendor: str | None = None,
         platform: str | None = None,
         overall_status: AuditOverallStatus | None = None,
-    ) -> list[AuditHistorySummary]:
-        statement = (
-            select(
-                AuditORM.id, AuditORM.vendor, AuditORM.platform, AuditORM.overall_status,
-                AuditORM.total_controls, AuditORM.passed, AuditORM.failed, AuditORM.manual,
-                AuditORM.informational, AuditORM.parsed_command_count,
-                AuditORM.security_fact_count, AuditORM.created_at,
-            )
-        )
+    ) -> tuple[list[AuditHistorySummary], int]:
+        filters = []
         if vendor is not None:
-            statement = statement.where(AuditORM.vendor == vendor)
+            filters.append(AuditORM.vendor == vendor)
         if platform is not None:
-            statement = statement.where(AuditORM.platform == platform)
+            filters.append(AuditORM.platform == platform)
         if overall_status is not None:
-            statement = statement.where(AuditORM.overall_status == overall_status.value)
-        statement = statement.order_by(AuditORM.created_at.desc()).limit(limit).offset(offset)
-        return [AuditHistorySummary(
+            filters.append(AuditORM.overall_status == overall_status.value)
+
+        statement = select(
+            AuditORM.id, AuditORM.vendor, AuditORM.platform, AuditORM.overall_status,
+            AuditORM.total_controls, AuditORM.passed, AuditORM.failed, AuditORM.manual,
+            AuditORM.informational, AuditORM.parsed_command_count,
+            AuditORM.security_fact_count, AuditORM.created_at,
+        ).where(*filters).order_by(AuditORM.created_at.desc()).limit(limit).offset(offset)
+        items = [AuditHistorySummary(
             audit_id=row.id, vendor=row.vendor, platform=row.platform,
             overall_status=AuditOverallStatus(row.overall_status),
             total_controls=row.total_controls, passed=row.passed, failed=row.failed,
@@ -81,6 +80,8 @@ class AuditRepository:
             parsed_command_count=row.parsed_command_count,
             security_fact_count=row.security_fact_count, created_at=row.created_at,
         ) for row in self.session.execute(statement)]
+        total = self.session.scalar(select(func.count(AuditORM.id)).where(*filters)) or 0
+        return items, total
 
     def list_reports(self, limit: int = 50, offset: int = 0) -> list[AuditReport]:
         """Return complete reports for existing repository callers."""

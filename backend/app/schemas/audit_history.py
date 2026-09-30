@@ -21,3 +21,15 @@ class AuditHistorySummary(BaseModel):
     parsed_command_count: int
     security_fact_count: int
     created_at: datetime
+
+
+class AuditHistoryPagination(BaseModel):
+    limit: int
+    offset: int
+    total: int
+    has_more: bool
+
+
+class AuditHistoryResponse(BaseModel):
+    items: list[AuditHistorySummary]
+    pagination: AuditHistoryPagination

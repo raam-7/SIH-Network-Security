@@ -53,7 +53,7 @@ def test_persistence_api_create_get_and_list():
     assert fetched.status_code == 200
     assert fetched.json()["summary"]["overall_status"] == "REVIEW_REQUIRED"
     assert listed.status_code == 200
-    assert listed.json()
+    assert listed.json()["items"]
 
 
 def test_persistence_api_validates_input_and_missing_id():
@@ -77,12 +77,16 @@ COMPLIANT_CONFIGURATION = (
 
 
 def test_empty_audit_history_returns_empty_list():
-    assert client.get("/api/v1/audits").json() == []
+    assert client.get("/api/v1/audits").json() == {
+        "items": [],
+        "pagination": {"limit": 50, "offset": 0, "total": 0, "has_more": False},
+    }
 
 
 def test_history_is_lightweight_and_contains_summary_fields():
     audit_id = create_persisted_audit()
-    item = client.get("/api/v1/audits").json()[0]
+    response = client.get("/api/v1/audits").json()
+    item = response["items"][0]
 
     assert item["audit_id"] == audit_id
     assert set(item) == {
@@ -99,6 +103,7 @@ def test_history_is_lightweight_and_contains_summary_fields():
     assert "findings" not in item
     assert "evidence" not in item
     assert "risk_level" not in item
+    assert response["pagination"] == {"limit": 50, "offset": 0, "total": 1, "has_more": False}
 
 
 def test_history_is_newest_first_and_supports_limit_and_offset():
@@ -112,9 +117,14 @@ def test_history_is_newest_first_and_supports_limit_and_offset():
         session.commit()
 
     listed = client.get("/api/v1/audits").json()
-    assert [item["audit_id"] for item in listed] == [second, first]
-    assert [item["audit_id"] for item in client.get("/api/v1/audits?limit=1").json()] == [second]
-    assert [item["audit_id"] for item in client.get("/api/v1/audits?offset=1").json()] == [first]
+    assert [item["audit_id"] for item in listed["items"]] == [second, first]
+    assert listed["pagination"] == {"limit": 50, "offset": 0, "total": 2, "has_more": False}
+    first_page = client.get("/api/v1/audits?limit=1").json()
+    assert [item["audit_id"] for item in first_page["items"]] == [second]
+    assert first_page["pagination"] == {"limit": 1, "offset": 0, "total": 2, "has_more": True}
+    last_page = client.get("/api/v1/audits?limit=1&offset=1").json()
+    assert [item["audit_id"] for item in last_page["items"]] == [first]
+    assert last_page["pagination"] == {"limit": 1, "offset": 1, "total": 2, "has_more": False}
 
 
 def test_history_pagination_validation_and_detail_remain_compatible():
@@ -135,24 +145,24 @@ def test_history_filters_vendor_platform_and_combined_status():
     review_required = create_persisted_audit("ip ssh version 2\n")
     non_compliant = create_persisted_audit("ip ssh version 1\n")
 
-    assert [item["audit_id"] for item in client.get("/api/v1/audits?vendor=cisco").json()] == [
+    assert [item["audit_id"] for item in client.get("/api/v1/audits?vendor=cisco").json()["items"]] == [
         non_compliant, review_required, compliant
     ]
-    assert [item["audit_id"] for item in client.get("/api/v1/audits?platform=ios-xe").json()] == [
+    assert [item["audit_id"] for item in client.get("/api/v1/audits?platform=ios-xe").json()["items"]] == [
         non_compliant, review_required, compliant
     ]
-    assert [item["audit_id"] for item in client.get(
-        "/api/v1/audits?overall_status=COMPLIANT"
-    ).json()] == [compliant]
+    compliant_response = client.get("/api/v1/audits?overall_status=COMPLIANT").json()
+    assert [item["audit_id"] for item in compliant_response["items"]] == [compliant]
+    assert compliant_response["pagination"]["total"] == 1
     assert [item["audit_id"] for item in client.get(
         "/api/v1/audits?overall_status=NON_COMPLIANT"
-    ).json()] == [non_compliant]
+    ).json()["items"]] == [non_compliant]
     assert [item["audit_id"] for item in client.get(
         "/api/v1/audits?overall_status=REVIEW_REQUIRED"
-    ).json()] == [review_required]
+    ).json()["items"]] == [review_required]
     assert [item["audit_id"] for item in client.get(
         "/api/v1/audits?vendor=cisco&platform=ios-xe&overall_status=COMPLIANT"
-    ).json()] == [compliant]
+    ).json()["items"]] == [compliant]
 
 
 def test_history_filters_apply_before_pagination_and_support_no_matches():
@@ -162,14 +172,31 @@ def test_history_filters_apply_before_pagination_and_support_no_matches():
 
     filtered = client.get("/api/v1/audits?vendor=cisco&limit=1&offset=1")
     assert filtered.status_code == 200
-    assert [item["audit_id"] for item in filtered.json()] == [second]
-    assert client.get("/api/v1/audits?vendor=juniper").json() == []
-    assert client.get("/api/v1/audits?vendor=cisco&platform=junos").json() == []
-    assert {item["audit_id"] for item in client.get("/api/v1/audits").json()} == {
+    assert [item["audit_id"] for item in filtered.json()["items"]] == [second]
+    assert filtered.json()["pagination"] == {"limit": 1, "offset": 1, "total": 3, "has_more": True}
+    assert client.get("/api/v1/audits?vendor=juniper").json()["pagination"]["total"] == 0
+    assert client.get("/api/v1/audits?vendor=cisco&platform=junos").json()["items"] == []
+    assert {item["audit_id"] for item in client.get("/api/v1/audits").json()["items"]} == {
         first, second, third
     }
 
 
+def test_history_boundary_and_out_of_range_pages_report_has_more_correctly():
+    for _ in range(4):
+        create_persisted_audit("ip ssh version 1\n")
+
+    exact_boundary = client.get("/api/v1/audits?limit=2&offset=2").json()
+    assert len(exact_boundary["items"]) == 2
+    assert exact_boundary["pagination"] == {"limit": 2, "offset": 2, "total": 4, "has_more": False}
+
+    out_of_range = client.get("/api/v1/audits?limit=2&offset=10").json()
+    assert out_of_range["items"] == []
+    assert out_of_range["pagination"] == {"limit": 2, "offset": 10, "total": 4, "has_more": False}
+
+
 def test_history_rejects_invalid_status_filter_and_empty_filtered_history():
     assert client.get("/api/v1/audits?overall_status=UNKNOWN").status_code == 422
-    assert client.get("/api/v1/audits?vendor=cisco").json() == []
+    response = client.get("/api/v1/audits?vendor=cisco").json()
+    assert response["items"] == []
+    assert response["pagination"]["total"] == 0
+    assert response["pagination"]["has_more"] is False
