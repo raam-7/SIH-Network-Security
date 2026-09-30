@@ -67,6 +67,15 @@ def create_persisted_audit(configuration="ip ssh version 2\n"):
     return response.json()["audit_id"]
 
 
+COMPLIANT_CONFIGURATION = (
+    "aaa new-model\n"
+    "ip ssh version 2\n"
+    "ip ssh time-out 60\n"
+    "line vty 0 4\n"
+    " transport input ssh\n"
+)
+
+
 def test_empty_audit_history_returns_empty_list():
     assert client.get("/api/v1/audits").json() == []
 
@@ -119,3 +128,48 @@ def test_history_pagination_validation_and_detail_remain_compatible():
     assert len(detail.json()["findings"]) == 5
     assert "evidence" in detail.json()["findings"][0]
     assert client.get("/api/v1/audits/00000000-0000-0000-0000-000000000000").status_code == 404
+
+
+def test_history_filters_vendor_platform_and_combined_status():
+    compliant = create_persisted_audit(COMPLIANT_CONFIGURATION)
+    review_required = create_persisted_audit("ip ssh version 2\n")
+    non_compliant = create_persisted_audit("ip ssh version 1\n")
+
+    assert [item["audit_id"] for item in client.get("/api/v1/audits?vendor=cisco").json()] == [
+        non_compliant, review_required, compliant
+    ]
+    assert [item["audit_id"] for item in client.get("/api/v1/audits?platform=ios-xe").json()] == [
+        non_compliant, review_required, compliant
+    ]
+    assert [item["audit_id"] for item in client.get(
+        "/api/v1/audits?overall_status=COMPLIANT"
+    ).json()] == [compliant]
+    assert [item["audit_id"] for item in client.get(
+        "/api/v1/audits?overall_status=NON_COMPLIANT"
+    ).json()] == [non_compliant]
+    assert [item["audit_id"] for item in client.get(
+        "/api/v1/audits?overall_status=REVIEW_REQUIRED"
+    ).json()] == [review_required]
+    assert [item["audit_id"] for item in client.get(
+        "/api/v1/audits?vendor=cisco&platform=ios-xe&overall_status=COMPLIANT"
+    ).json()] == [compliant]
+
+
+def test_history_filters_apply_before_pagination_and_support_no_matches():
+    first = create_persisted_audit("ip ssh version 1\n")
+    second = create_persisted_audit("ip ssh version 1\n")
+    third = create_persisted_audit("ip ssh version 1\n")
+
+    filtered = client.get("/api/v1/audits?vendor=cisco&limit=1&offset=1")
+    assert filtered.status_code == 200
+    assert [item["audit_id"] for item in filtered.json()] == [second]
+    assert client.get("/api/v1/audits?vendor=juniper").json() == []
+    assert client.get("/api/v1/audits?vendor=cisco&platform=junos").json() == []
+    assert {item["audit_id"] for item in client.get("/api/v1/audits").json()} == {
+        first, second, third
+    }
+
+
+def test_history_rejects_invalid_status_filter_and_empty_filtered_history():
+    assert client.get("/api/v1/audits?overall_status=UNKNOWN").status_code == 422
+    assert client.get("/api/v1/audits?vendor=cisco").json() == []

@@ -50,7 +50,14 @@ class AuditRepository:
         audit = self.session.get(AuditORM, audit_id)
         return self._to_report(audit) if audit else None
 
-    def list_summaries(self, limit: int = 50, offset: int = 0) -> list[AuditHistorySummary]:
+    def list_summaries(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        vendor: str | None = None,
+        platform: str | None = None,
+        overall_status: AuditOverallStatus | None = None,
+    ) -> list[AuditHistorySummary]:
         statement = (
             select(
                 AuditORM.id, AuditORM.vendor, AuditORM.platform, AuditORM.overall_status,
@@ -58,10 +65,14 @@ class AuditRepository:
                 AuditORM.informational, AuditORM.parsed_command_count,
                 AuditORM.security_fact_count, AuditORM.created_at,
             )
-            .order_by(AuditORM.created_at.desc())
-            .limit(limit)
-            .offset(offset)
         )
+        if vendor is not None:
+            statement = statement.where(AuditORM.vendor == vendor)
+        if platform is not None:
+            statement = statement.where(AuditORM.platform == platform)
+        if overall_status is not None:
+            statement = statement.where(AuditORM.overall_status == overall_status.value)
+        statement = statement.order_by(AuditORM.created_at.desc()).limit(limit).offset(offset)
         return [AuditHistorySummary(
             audit_id=row.id, vendor=row.vendor, platform=row.platform,
             overall_status=AuditOverallStatus(row.overall_status),

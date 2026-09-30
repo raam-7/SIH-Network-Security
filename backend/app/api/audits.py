@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.app.api.audit import CiscoAuditRequest
 from backend.app.db import get_session
 from backend.app.schemas.audit_history import AuditHistorySummary
+from backend.app.schemas.audit_report import AuditOverallStatus
 from backend.app.services import AuditReportService, AuditService
 from backend.app.services.audit_repository import AuditRepository
 
@@ -31,7 +32,20 @@ def get_audit(audit_id: UUID, session: Session = Depends(get_session)):
 
 
 @router.get("", response_model=list[AuditHistorySummary])
-def list_audits(limit: int = 50, offset: int = 0, session: Session = Depends(get_session)):
+def list_audits(
+    limit: int = 50,
+    offset: int = 0,
+    vendor: str | None = None,
+    platform: str | None = None,
+    overall_status: AuditOverallStatus | None = None,
+    session: Session = Depends(get_session),
+):
     if limit < 1 or limit > 100 or offset < 0:
         raise HTTPException(status_code=422, detail="invalid pagination")
-    return AuditRepository(session).list_summaries(limit=limit, offset=offset)
+    return AuditRepository(session).list_summaries(
+        limit=limit,
+        offset=offset,
+        vendor=vendor,
+        platform=platform,
+        overall_status=overall_status,
+    )
