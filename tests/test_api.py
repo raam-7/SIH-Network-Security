@@ -55,3 +55,20 @@ def test_cisco_audit_api_rejects_whitespace_configuration():
     response = client.post("/api/v1/audit/cisco", json={"configuration": "  \n"})
 
     assert response.status_code == 400
+
+
+def test_cisco_report_api_returns_compliant_report():
+    response = client.post(
+        "/api/v1/audit/cisco/report",
+        json={"configuration": "aaa new-model\nip ssh version 2\nip ssh time-out 60\nline vty 0 4\n transport input ssh\n"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["summary"]["overall_status"] == "COMPLIANT"
+    assert response.json()["summary"]["passed"] == 5
+
+
+def test_cisco_report_api_validates_invalid_request():
+    response = client.post("/api/v1/audit/cisco/report", json={})
+
+    assert response.status_code == 422

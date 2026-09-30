@@ -1,4 +1,5 @@
 from .audit import AuditResult, AuditService
 from .human_review import HumanReviewService
+from .report import AuditReportService
 
-__all__ = ["AuditResult", "AuditService", "HumanReviewService"]
+__all__ = ["AuditReportService", "AuditResult", "AuditService", "HumanReviewService"]
