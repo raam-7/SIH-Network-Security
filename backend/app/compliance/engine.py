@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from typing import List, Optional
 
 from backend.app.schemas import Evidence, Finding, FindingResult, FindingSeverity, SecurityFact
+from backend.app.compliance.evidence import score_evidence
 
 
 class CiscoSSH001Rule:
@@ -224,13 +225,21 @@ class ComplianceEngine:
 
     def evaluate(self, fact: SecurityFact) -> Optional[Finding]:
         """Evaluate one fact; unrelated facts do not produce findings."""
-        return (
+        finding = (
             self._ssh_rule.evaluate(fact)
             or self._telnet_rule.evaluate(fact)
             or self._aaa_rule.evaluate(fact)
             or self._vty_ssh_rule.evaluate(fact)
             or self._ssh_timeout_rule.evaluate(fact)
         )
+        if finding is not None:
+            finding.evidence_score, finding.evidence_type = score_evidence(finding)
+            finding.semantic_concept = fact.security_concept
+            finding.semantic_property = fact.property
+            finding.semantic_value = fact.value
+            finding.ai_confidence = fact.confidence if fact.mapping_source != "deterministic_mapping" else None
+            finding.mapping_source = fact.mapping_source
+        return finding
 
     def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
         """Evaluate each applicable fact, or MANUAL when SSH evidence is absent."""

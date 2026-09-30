@@ -73,6 +73,7 @@ class CiscoSecurityFactMapper:
             value=value,
             confidence=1.0,
             mapping_source=MAPPING_SOURCE,
+            semantic_method="deterministic",
             evidence=Evidence(
                 line_start=command.line_start,
                 line_end=command.line_end,
@@ -101,6 +102,7 @@ class CiscoSecurityFactMapper:
             value=match.group(1).lower().split(),
             confidence=1.0,
             mapping_source=MAPPING_SOURCE,
+            semantic_method="deterministic",
             evidence=Evidence(
                 line_start=command.line_start,
                 line_end=command.line_end,

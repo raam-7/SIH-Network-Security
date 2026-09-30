@@ -3,6 +3,7 @@ from .finding import Finding, FindingResult, FindingSeverity
 from .human_review import HumanReview, HumanReviewDecision, HumanReviewStatus
 from .parsed_command import ParsedCommand
 from .security_fact import SecurityFact
+from .attack_scenario import AttackScenario, AttackScenarioStatus
 
 __all__ = [
     "Evidence",
@@ -14,4 +15,6 @@ __all__ = [
     "HumanReviewStatus",
     "ParsedCommand",
     "SecurityFact",
+    "AttackScenario",
+    "AttackScenarioStatus",
 ]

@@ -1,0 +1,15 @@
+"use client";
+import { useState } from "react";
+import type { AttackScenario, AttackScenarioStatus } from "../../lib/types";
+
+type AttackScenariosProps = { scenarios?: AttackScenario[]; loading?: boolean; error?: string };
+
+export default function AttackScenarios({ scenarios, loading = false, error = "" }: AttackScenariosProps) {
+  const [filter, setFilter] = useState<AttackScenarioStatus | "ALL">("APPLICABLE");
+  const safeScenarios = scenarios ?? [];
+  const visible = safeScenarios.filter(scenario => filter === "ALL" || scenario.status === filter);
+  return <section className="attack-section"><div className="section-title"><div><h2>Attack Scenarios</h2><p className="meta">Defensive attack-path modeling based on configuration findings. No exploitation is performed.</p></div><select className="select scenario-filter" aria-label="Filter attack scenarios" value={filter} onChange={event => setFilter(event.target.value as AttackScenarioStatus | "ALL")}><option value="ALL">All statuses</option><option value="APPLICABLE">Applicable</option><option value="POTENTIAL">Potential / review</option><option value="NOT_APPLICABLE">Not applicable</option></select></div>{loading ? <div className="empty">Analyzing attack scenarios…</div> : error ? <div className="notice error">Attack scenario analysis could not be loaded.</div> : visible.length === 0 ? <div className="empty">No supported attack scenarios were established by the audit findings.</div> : <div className="scenario-grid">{visible.map(scenario => <ScenarioCard key={scenario.scenario_id} scenario={scenario} />)}</div>}</section>;
+}
+function ScenarioCard({ scenario }: { scenario: AttackScenario }) {
+  return <article className="scenario-card"><div className="finding-head"><div><span className="eyebrow">Attack scenario</span><h3>{scenario.name}</h3></div><div className={`scenario-status ${scenario.status.toLowerCase()}`}>{scenario.status}</div></div><p>{scenario.description}</p><div className="scenario-meta"><span>Severity <strong>{scenario.severity}</strong></span><span>Findings <strong>{scenario.supporting_rule_ids.length}</strong></span><span>Evidence <strong>{scenario.evidence_score}/100</strong></span></div><div className="path-flow">{scenario.potential_path.map((node, index) => <span key={`${scenario.scenario_id}-path-${index}-${node}`}>{index > 0 && <b>↓</b>}<i>{node}</i></span>)}</div><div className="scenario-support"><span className="label">Supporting findings</span><p>{scenario.supporting_rule_ids.join(" · ")}</p>{scenario.requires_human_review && <span className="review-required">Requires human review · Potential attack path</span>}</div><details><summary>View attack path details</summary><p><strong>Entry point:</strong> {scenario.entry_point}</p><p><strong>Potential impact:</strong> {scenario.potential_impact}</p><span className="label">Recommended controls</span><ul>{scenario.recommended_controls.map((control, index) => <li key={`${scenario.scenario_id}-control-${index}-${control}`}>{control}</li>)}</ul></details></article>;
+}

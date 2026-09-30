@@ -1,0 +1,11 @@
+import type { AuditReport } from "../../lib/types";
+import FindingList from "./FindingList";
+import AttackScenarios from "./AttackScenarios";
+
+export default function ReportView({ report, auditId }: { report: AuditReport; auditId?: string }) {
+  const { summary } = report;
+  const metrics = [["CONTROLS", summary.total_controls], ["PASSED", summary.passed], ["FAILED", summary.failed], ["MANUAL", summary.manual], ["CRITICAL", summary.critical_count], ["HIGH", summary.high_count], ["MEDIUM", summary.medium_count], ["LOW", summary.low_count], ["PENDING", summary.review_pending_count], ["REVIEWED", summary.review_completed_count]];
+  const severity = [["Critical", summary.critical_count], ["High", summary.high_count], ["Medium", summary.medium_count], ["Low", summary.low_count]];
+  const scenarios = report.attack_scenarios ?? [];
+  return <section><div className={`status-card ${summary.overall_status}`}><div className="result-hero"><div><span className="eyebrow">Audit summary · deterministic result</span><div className="status">{summary.overall_status.replace("_", " ")}</div><p className="meta">{summary.failed} failed · {summary.manual} manual · {summary.passed} passed</p></div><div className="summary-ring"><strong>{summary.total_controls}</strong><span>controls</span></div></div><div className="summary-grid">{metrics.map(([label, value]) => <div className="metric" key={label as string}><span className="label">{label}</span><strong>{value}</strong></div>)}</div><div className="severity-strip"><span className="label">Severity distribution</span>{severity.map(([label, value]) => <div className="severity-row" key={label as string}><span>{label}</span><div><i style={{ width: `${summary.total_controls ? Number(value) / summary.total_controls * 100 : 0}%` }} /></div><strong>{value}</strong></div>)}</div><p className="meta architecture-note">AI/semantic interpretation assists normalization. Deterministic rules make compliance decisions.</p></div><AttackScenarios scenarios={scenarios} /><div className="section-title"><h2>Findings</h2><span className="meta">{report.findings.length} controls evaluated</span></div><FindingList findings={report.findings} auditId={auditId} /></section>;
+}

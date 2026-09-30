@@ -1,6 +1,7 @@
 """Human adjudication contract for uncertain compliance findings."""
 
 from enum import Enum
+from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -29,6 +30,7 @@ class HumanReview(BaseModel):
     reviewer_reason: str
     evidence_reference: Evidence | None = None
     status: HumanReviewStatus = HumanReviewStatus.PENDING
+    reviewed_at: datetime | None = None
 
     @field_validator("review_id", "rule_id", "reviewer", "reviewer_reason")
     @classmethod

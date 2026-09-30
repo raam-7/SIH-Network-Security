@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.db.base import Base
 from backend.app.db.models import AuditORM
 from backend.app.services.audit import hash_configuration
-from backend.app.services import AuditReportService, AuditRepository, AuditService
+from backend.app.services import AuditReportService, AuditRepository, AuditService, HumanReviewService
+from backend.app.schemas import HumanReviewDecision
 
 
 def repository():
@@ -69,3 +70,23 @@ def test_duplicate_rule_findings_remain_distinct_and_ordered():
 
     assert [item.observed_value for item in ssh_findings] == [1, 2]
     assert len({item.evidence.exact_text for item in ssh_findings}) == 2
+
+def test_metadata_reviews_and_attack_scenarios_round_trip():
+    repo = repository()
+    report = audit_report("no aaa new-model\nip ssh version 1\nip ssh time-out 120\nline vty 0 4\n transport input telnet\n")
+    audit_id = repo.save_report(report)
+    restored = repo.get_report(audit_id)
+    ssh = next(item for item in restored.findings if item.rule_id == "CISCO-SSH-001")
+    assert ssh.evidence_score == 80
+    assert ssh.semantic_concept == "SSH_VERSION"
+    assert ssh.mapping_source == "deterministic_mapping"
+    assert {scenario.scenario_id for scenario in restored.attack_scenarios} == {"CREDENTIAL_ATTACK", "MANAGEMENT_PLANE_EXPOSURE", "UNAUTHORIZED_REMOTE_ACCESS"}
+    manual = next(item for item in report.findings if item.rule_id == "CISCO-AAA-001")
+    review = HumanReviewService().create_review(manual, "reviewer", HumanReviewDecision.NON_COMPLIANT, "Verified manually")
+    repo.save_review(audit_id, review)
+    reviewed = repo.get_report(audit_id)
+    manual_restored = next(item for item in reviewed.findings if item.rule_id == "CISCO-AAA-001")
+    assert manual_restored.result.value == "MANUAL"
+    assert manual_restored.review is not None
+    assert manual_restored.review.status.value == "REVIEWED"
+    assert manual_restored.review.decision is HumanReviewDecision.NON_COMPLIANT

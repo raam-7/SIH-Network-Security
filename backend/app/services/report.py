@@ -11,6 +11,7 @@ from backend.app.schemas.audit_report import (
 )
 
 from .audit import AuditResult
+from .attack_scenarios import build_attack_scenarios
 
 
 class AuditReportService:
@@ -42,6 +43,13 @@ class AuditReportService:
                     is_actionable=assessment.is_actionable,
                     remediation_mode=assessment.remediation_mode,
                     rationale=assessment.rationale,
+                    evidence_score=finding.evidence_score,
+                    evidence_type=finding.evidence_type,
+                    semantic_concept=finding.semantic_concept,
+                    semantic_property=finding.semantic_property,
+                    semantic_value=finding.semantic_value,
+                    ai_confidence=finding.ai_confidence,
+                    mapping_source=finding.mapping_source,
                 )
             )
 
@@ -57,6 +65,11 @@ class AuditReportService:
             passed=sum(item.result is FindingResult.PASS for item in audit_result.findings),
             failed=sum(item.result is FindingResult.FAIL for item in audit_result.findings),
             manual=sum(item.result is FindingResult.MANUAL for item in audit_result.findings),
+            critical_count=sum(item.severity.value == "CRITICAL" and item.result is FindingResult.FAIL for item in audit_result.findings),
+            high_count=sum(item.severity.value == "HIGH" and item.result is FindingResult.FAIL for item in audit_result.findings),
+            medium_count=sum(item.severity.value == "MEDIUM" and item.result is FindingResult.FAIL for item in audit_result.findings),
+            low_count=sum(item.severity.value == "LOW" and item.result is FindingResult.FAIL for item in audit_result.findings),
+            review_pending_count=sum(item.result is FindingResult.MANUAL for item in audit_result.findings),
             overall_status=status,
         )
         return AuditReport(
@@ -66,4 +79,5 @@ class AuditReportService:
             findings=report_findings,
             parsed_command_count=audit_result.parsed_command_count,
             security_fact_count=audit_result.security_fact_count,
+            attack_scenarios=build_attack_scenarios(audit_result.findings),
         )

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from uuid import UUID
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.app.db.models import AuditORM, FindingORM, RiskAssessmentORM
-from backend.app.schemas import Evidence, FindingResult, FindingSeverity
+from backend.app.db.models import AuditORM, FindingORM, RiskAssessmentORM, HumanReviewORM
+from backend.app.schemas import Evidence, FindingResult, FindingSeverity, HumanReview, HumanReviewDecision, HumanReviewStatus
 from backend.app.schemas.audit_history import AuditHistorySummary
 from backend.app.schemas.audit_report import AuditOverallStatus, AuditReport, AuditReportFinding, AuditSummary
+from backend.app.services.attack_scenarios import build_attack_scenarios
 
 
 class AuditRepository:
@@ -35,6 +37,10 @@ class AuditRepository:
                 title=item.title, description=item.description, remediation=item.remediation,
                 risk_level=item.risk_level, is_actionable=item.is_actionable,
                 remediation_mode=item.remediation_mode.value, rationale=item.rationale,
+                evidence_score=item.evidence_score, evidence_type=item.evidence_type,
+                semantic_concept=item.semantic_concept, semantic_property=item.semantic_property,
+                semantic_value=item.semantic_value, ai_confidence=item.ai_confidence,
+                mapping_source=item.mapping_source,
             )
             finding.risk_assessment = RiskAssessmentORM(
                 rule_id=item.rule_id, result=item.result.value, severity=item.severity.value,
@@ -50,6 +56,30 @@ class AuditRepository:
     def get_report(self, audit_id: UUID) -> AuditReport | None:
         audit = self.session.get(AuditORM, audit_id)
         return self._to_report(audit) if audit else None
+
+    def save_review(self, audit_id: UUID, review: HumanReview) -> HumanReview:
+        audit = self.session.get(AuditORM, audit_id)
+        if audit is None:
+            raise ValueError("audit not found")
+        finding = next((item for item in audit.findings if item.rule_id == review.rule_id and item.result == "MANUAL"), None)
+        if finding is None:
+            raise ValueError("MANUAL finding not found for audit")
+        persisted = self.session.query(HumanReviewORM).filter_by(finding_id=finding.id).one_or_none()
+        if persisted is None:
+            persisted = HumanReviewORM(audit_id=audit_id, finding_id=finding.id)
+            self.session.add(persisted)
+        persisted.rule_id = review.rule_id
+        persisted.original_result = review.original_result.value
+        persisted.decision = review.decision.value
+        persisted.reviewer = review.reviewer
+        persisted.reviewer_reason = review.reviewer_reason
+        persisted.status = "REVIEWED"
+        persisted.reviewed_at = datetime.now(timezone.utc)
+        self.session.commit()
+        return HumanReview(review_id=str(persisted.id), rule_id=persisted.rule_id,
+            original_result=FindingResult(persisted.original_result), decision=HumanReviewDecision(persisted.decision),
+            reviewer=persisted.reviewer, reviewer_reason=persisted.reviewer_reason,
+            status=HumanReviewStatus.REVIEWED, reviewed_at=persisted.reviewed_at)
 
     def list_summaries(
         self,
@@ -93,6 +123,7 @@ class AuditRepository:
 
     @staticmethod
     def _to_report(audit: AuditORM) -> AuditReport:
+        reviews_by_finding = {review.finding_id: review for review in audit.reviews}
         findings = [AuditReportFinding(
             rule_id=item.rule_id, result=FindingResult(item.result), severity=FindingSeverity(item.severity),
             observed_value=item.observed_value, expected_value=item.expected_value,
@@ -100,6 +131,13 @@ class AuditRepository:
             title=item.title, description=item.description, remediation=item.remediation,
             risk_level=item.risk_level, is_actionable=item.is_actionable,
             remediation_mode=item.remediation_mode, rationale=item.rationale,
+            evidence_score=item.evidence_score or 0, evidence_type=item.evidence_type or "No supporting configuration evidence found.",
+            semantic_concept=item.semantic_concept, semantic_property=item.semantic_property,
+            semantic_value=item.semantic_value, ai_confidence=item.ai_confidence, mapping_source=item.mapping_source,
+            review=HumanReview(review_id=str(review.id), rule_id=review.rule_id,
+                original_result=FindingResult(review.original_result), decision=HumanReviewDecision(review.decision),
+                reviewer=review.reviewer, reviewer_reason=review.reviewer_reason,
+                status=HumanReviewStatus(review.status), reviewed_at=review.reviewed_at) if (review := reviews_by_finding.get(item.id)) else None,
         ) for item in audit.findings]
         return AuditReport(
             vendor=audit.vendor, platform=audit.platform,
@@ -108,4 +146,5 @@ class AuditRepository:
                 overall_status=AuditOverallStatus(audit.overall_status)),
             findings=findings, parsed_command_count=audit.parsed_command_count,
             security_fact_count=audit.security_fact_count, configuration_hash=audit.configuration_hash,
+            attack_scenarios=build_attack_scenarios(findings),
         )

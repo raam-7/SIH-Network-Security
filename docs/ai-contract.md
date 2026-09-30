@@ -85,3 +85,23 @@ If a configuration command has no verified mapping or low inference confidence (
 - `confidence` is marked accordingly or mapped to an explicit needs-review state.
 - The pipeline delegates the command to `MANUAL` / human validation.
 - The system never guesses security attributes or invents default values.
+
+## 4. Evidence and decision boundary
+
+AI confidence describes semantic interpretation only. It is never a compliance
+decision. The deterministic rule engine evaluates the normalized fact.
+
+Findings also expose a separate deterministic `evidence_score` from 0 to 100:
+direct exact rule evidence scores 100, knowledge-base contextual evidence 95,
+strong contextual evidence 80, semantic/indirect evidence 1–79, and absent
+evidence scores 0. Empty evidence is displayed as “No supporting configuration
+evidence found.”
+
+Human review is a separate adjudication record for MANUAL findings. A reviewer
+may mark the finding COMPLIANT or NON_COMPLIANT, while the original MANUAL
+result remains preserved for audit traceability. The audit's deterministic
+overall status remains REVIEW_REQUIRED while any MANUAL finding exists.
+
+The current production adapter is Cisco IOS/IOS-XE. Juniper and FortiGate are
+extension points only; unsupported vendors must report that semantic
+integration is unavailable rather than producing fabricated compliance results.
