@@ -138,6 +138,33 @@ def test_map_commands_preserves_existing_telnet_and_adds_vty_fact():
     assert [fact.security_concept for fact in facts] == ["TELNET_ACCESS", "VTY_TRANSPORT"]
 
 
+def test_map_commands_accepts_actual_parser_output():
+    commands = parse_cisco_config("line vty 0 4\n transport input ssh\n")
+    facts = CiscoSecurityFactMapper().map_commands(commands)
+
+    assert [(fact.security_concept, fact.property, fact.value) for fact in facts] == [
+        ("TELNET_ACCESS", "enabled", False),
+        ("VTY_TRANSPORT", "allowed_protocols", ["ssh"]),
+    ]
+
+
+def test_map_commands_accepts_parser_timeout_and_malformed_input():
+    mapper = CiscoSecurityFactMapper()
+    timeout_facts = mapper.map_commands(parse_cisco_config("ip ssh time-out 60"))
+    malformed_facts = mapper.map_commands(parse_cisco_config("ip ssh time-out abc"))
+
+    assert [(fact.security_concept, fact.property, fact.value) for fact in timeout_facts] == [
+        ("SSH_TIMEOUT", "timeout_seconds", 60),
+    ]
+    assert malformed_facts == []
+
+
+def test_map_commands_ignores_multiple_unrelated_parser_commands():
+    commands = parse_cisco_config("hostname R1\nunsupported command\nlogging buffered 64000\n")
+
+    assert CiscoSecurityFactMapper().map_commands(commands) == []
+
+
 def test_multiline_parser_evidence_preserves_source_text_and_range():
     commands = parse_cisco_config("hostname R1\nbanner login ^\nAUTHORIZED\n^\n")
     banner = commands[1]

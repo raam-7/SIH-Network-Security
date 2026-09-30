@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Optional
 
 from backend.app.schemas import Evidence, ParsedCommand, SecurityFact
@@ -108,13 +109,22 @@ class CiscoSecurityFactMapper:
             parent_context=command.parent_context,
         )
 
-    def map_commands(self, command: ParsedCommand) -> list[SecurityFact]:
-        """Return all deterministic facts represented by one parsed command."""
+    def map_commands(
+        self, commands: Iterable[ParsedCommand] | ParsedCommand
+    ) -> list[SecurityFact]:
+        """Return all deterministic facts represented by parsed commands.
+
+        A single ParsedCommand remains accepted for compatibility with the
+        original helper usage; parser output should be passed as an iterable.
+        """
+        if isinstance(commands, ParsedCommand):
+            commands = (commands,)
         facts = []
-        if (fact := self.map_command(command)) is not None:
-            facts.append(fact)
-        if (fact := self.map_vty_transport(command)) is not None:
-            facts.append(fact)
+        for command in commands:
+            if (fact := self.map_command(command)) is not None:
+                facts.append(fact)
+            if (fact := self.map_vty_transport(command)) is not None:
+                facts.append(fact)
         return facts
 
 
