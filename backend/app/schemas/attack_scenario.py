@@ -1,3 +1,15 @@
+from enum import Enum
+
+from pydantic import BaseModel, Field
+
+from .evidence import Evidence
+
+
+class AttackScenarioStatus(str, Enum):
+    APPLICABLE = "APPLICABLE"
+    POTENTIAL = "POTENTIAL"
+
+
 class AttackScenario(BaseModel):
     scenario_id: str
     name: str

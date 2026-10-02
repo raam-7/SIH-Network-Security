@@ -70,6 +70,8 @@ reports/
 *.ggml
 checkpoints/
 models/
+!backend/app/db/models/
+!backend/app/db/models/*.py
 weights/
 adapters/
 loras/
