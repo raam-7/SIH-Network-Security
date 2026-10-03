@@ -66,6 +66,7 @@ class AuditReport(BaseModel):
     security_fact_count: int = Field(..., ge=0)
     configuration_hash: str | None = None
     attack_scenarios: list[AttackScenario] = Field(default_factory=list)
+    posture: Any = None
 
     @field_validator("configuration_hash")
     @classmethod

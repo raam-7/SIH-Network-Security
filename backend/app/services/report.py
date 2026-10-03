@@ -80,4 +80,5 @@ class AuditReportService:
             parsed_command_count=audit_result.parsed_command_count,
             security_fact_count=audit_result.security_fact_count,
             attack_scenarios=build_attack_scenarios(audit_result.findings),
+            posture=audit_result.posture,
         )

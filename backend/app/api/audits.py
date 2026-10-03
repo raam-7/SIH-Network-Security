@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.app.api.audit import CiscoAuditRequest
+from backend.app.api.audit import CiscoAuditRequest, VendorAuditRequest
 from backend.app.db import get_session
 from backend.app.schemas.audit_history import AuditHistoryPagination, AuditHistoryResponse
 from backend.app.schemas.audit_report import AuditOverallStatus
@@ -18,6 +18,16 @@ router = APIRouter(prefix="/audits", tags=["audits"])
 def create_audit(request: CiscoAuditRequest, session: Session = Depends(get_session)):
     try:
         report = AuditReportService().build_report(AuditService().audit_cisco_config(request.configuration))
+        report.configuration_hash = hash_configuration(request.configuration)
+        audit_id = AuditRepository(session).save_report(report)
+        return {"audit_id": str(audit_id), "report": report}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+@router.post("/vendor")
+def create_vendor_audit(request: VendorAuditRequest, session: Session = Depends(get_session)):
+    try:
+        report = AuditReportService().build_report(AuditService().audit_config(request.vendor, request.configuration))
         report.configuration_hash = hash_configuration(request.configuration)
         audit_id = AuditRepository(session).save_report(report)
         return {"audit_id": str(audit_id), "report": report}

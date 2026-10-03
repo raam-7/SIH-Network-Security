@@ -25,11 +25,14 @@ export interface AuditReportFinding {
   ai_confidence?: number | null; mapping_source?: string | null;
   review?: HumanReview | null;
 }
+export interface PostureDeduction { rule_id: string; severity: FindingSeverity; deduction: number; reason: string; }
+export interface PostureScore { score: number; rating: string; total_controls: number; passed: number; failed: number; manual: number; deductions: PostureDeduction[]; explanation: string; }
 export interface AuditReport {
   vendor: string; platform: string; summary: AuditSummary;
   findings: AuditReportFinding[]; parsed_command_count: number;
   security_fact_count: number; configuration_hash: string | null;
   attack_scenarios: AttackScenario[];
+  posture?: PostureScore | null;
 }
 export interface AuditHistorySummary {
   audit_id: string; vendor: string; platform: string; overall_status: OverallStatus;

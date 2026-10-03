@@ -241,10 +241,22 @@ class ComplianceEngine:
             finding.mapping_source = fact.mapping_source
         return finding
 
-    def evaluate_all(self, facts: Iterable[SecurityFact]) -> List[Finding]:
-        """Evaluate each applicable fact, or MANUAL when SSH evidence is absent."""
+    def evaluate_all(self, facts: Iterable[SecurityFact], vendor: str = "cisco") -> List[Finding]:
+        """Evaluate facts using explicit vendor applicability.
+
+        Cisco retains its established five-control behavior. Other vendors
+        currently share only the verified SSH and Telnet canonical mappings;
+        Cisco VTY, AAA, and timeout controls are not silently applied.
+        """
         fact_list = list(facts)
         findings = [finding for fact in fact_list if (finding := self.evaluate(fact)) is not None]
+        if vendor != "cisco":
+            findings = [finding for finding in findings if finding.rule_id in {"CISCO-SSH-001", "CISCO-TELNET-001"}]
+            if not any(fact.security_concept == "SSH_VERSION" and fact.property == "protocol_version" for fact in fact_list):
+                findings.append(self._manual_absence_finding())
+            if not any(fact.security_concept == "TELNET_ACCESS" and fact.property == "enabled" for fact in fact_list):
+                findings.append(self._telnet_manual_absence_finding())
+            return findings
         if not any(
             fact.security_concept == "SSH_VERSION" and fact.property == "protocol_version"
             for fact in fact_list

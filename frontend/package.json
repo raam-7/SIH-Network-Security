@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx --test lib/vendor-detection.test.ts"
+    "test": "tsx --test lib/vendor-detection.test.ts lib/severity-distribution.test.ts"
   },
   "dependencies": {
     "next": "^16.3.7",

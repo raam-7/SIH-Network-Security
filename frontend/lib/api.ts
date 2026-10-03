@@ -3,7 +3,7 @@ import type { AuditHistoryResponse, AuditReport, AuditReportFinding, HumanReview
 const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1").replace(/\/$/, "");
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, detail: string, statusText: string) {
+  constructor(public readonly status: number, public readonly detail: string, statusText: string) {
     super(`API request failed: ${status} ${statusText}${detail ? `: ${detail}` : ""}`);
     this.name = "ApiError";
   }
@@ -14,6 +14,7 @@ export function userFacingApiError(error: unknown): string {
   if (error.status === 400) return "Invalid audit request.";
   if (error.status === 404) return "Audit not found.";
   if (error.status === 422) return "Invalid request data.";
+  if (error.status === 503) return error.detail || "Audit database unavailable. Check the local PostgreSQL configuration.";
   if (error.status >= 500) return "Backend audit service returned an internal error.";
   return error.message;
 }
@@ -34,6 +35,12 @@ export function createAudit(configuration: string) {
   return request<{ audit_id: string; report: AuditReport }>("/audits", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ configuration }),
+  });
+}
+export function createVendorAudit(vendor: string, configuration: string) {
+  return request<{ audit_id: string; report: AuditReport }>("/audits/vendor", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vendor, configuration }),
   });
 }
 export function getAudit(id: string) { return request<AuditReport>(`/audits/${encodeURIComponent(id)}`); }
