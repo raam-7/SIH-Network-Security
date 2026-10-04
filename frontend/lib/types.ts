@@ -2,6 +2,12 @@ export type OverallStatus = "COMPLIANT" | "NON_COMPLIANT" | "REVIEW_REQUIRED";
 export type FindingResult = "PASS" | "FAIL" | "MANUAL";
 export type FindingSeverity = "INFO" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type RemediationMode = "COMMAND" | "MANUAL" | "NONE";
+export type RemediationStatus = "AVAILABLE" | "NOT_REQUIRED" | "HUMAN_REVIEW";
+export interface RemediationPlan {
+  status: RemediationStatus; rule_id: string; vendor: string; title: string;
+  recommended_action: string; configuration: string | null; verification: string;
+  rationale: string; safety_notes: string[]; source: string;
+}
 export type HumanReviewStatus = "PENDING" | "REVIEWED";
 export type HumanReviewDecision = "COMPLIANT" | "NON_COMPLIANT";
 export interface HumanReview { review_id: string; rule_id: string; original_result: "MANUAL"; decision: HumanReviewDecision; reviewer: string; reviewer_reason: string; status: HumanReviewStatus; }
@@ -19,6 +25,7 @@ export interface AuditReportFinding {
   rule_id: string; result: FindingResult; severity: FindingSeverity;
   observed_value: unknown; expected_value: unknown; evidence: Evidence;
   title: string; description: string; remediation: string | null;
+  remediation_plan?: RemediationPlan | null;
   risk_level: string; is_actionable: boolean; remediation_mode: RemediationMode;
   rationale: string; evidence_score: number; evidence_type: string;
   semantic_concept?: string | null; semantic_property?: string | null; semantic_value?: unknown;

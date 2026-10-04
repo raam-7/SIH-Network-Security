@@ -11,6 +11,7 @@ from .finding import FindingResult, FindingSeverity
 from .human_review import HumanReview
 from .attack_scenario import AttackScenario
 from .explanation import FindingExplanation
+from .remediation import RemediationPlan
 
 
 class AuditOverallStatus(str, Enum):
@@ -44,6 +45,7 @@ class AuditReportFinding(BaseModel):
     title: str
     description: str
     remediation: str | None = None
+    remediation_plan: RemediationPlan | None = None
     risk_level: str
     is_actionable: bool
     remediation_mode: RemediationMode

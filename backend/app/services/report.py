@@ -12,6 +12,7 @@ from backend.app.schemas.audit_report import (
 
 from .audit import AuditResult
 from .attack_scenarios import build_attack_scenarios
+from .remediation import get_remediation
 
 
 class AuditReportService:
@@ -39,6 +40,7 @@ class AuditReportService:
                     title=finding.title,
                     description=finding.description,
                     remediation=finding.remediation,
+                    remediation_plan=get_remediation(finding, audit_result.vendor),
                     risk_level=assessment.risk_level,
                     is_actionable=assessment.is_actionable,
                     remediation_mode=assessment.remediation_mode,
