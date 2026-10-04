@@ -50,6 +50,7 @@ class AuditReportService:
                     semantic_value=finding.semantic_value,
                     ai_confidence=finding.ai_confidence,
                     mapping_source=finding.mapping_source,
+                    explanation=finding.explanation,
                 )
             )
 

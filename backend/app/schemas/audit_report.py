@@ -10,6 +10,7 @@ from .evidence import Evidence
 from .finding import FindingResult, FindingSeverity
 from .human_review import HumanReview
 from .attack_scenario import AttackScenario
+from .explanation import FindingExplanation
 
 
 class AuditOverallStatus(str, Enum):
@@ -55,6 +56,7 @@ class AuditReportFinding(BaseModel):
     ai_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     mapping_source: str | None = None
     review: "HumanReview | None" = None
+    explanation: FindingExplanation | None = None
 
 
 class AuditReport(BaseModel):

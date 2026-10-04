@@ -41,3 +41,4 @@ class Finding(BaseModel):
     semantic_value: Any = None
     ai_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     mapping_source: Optional[str] = None
+    explanation: Any = None

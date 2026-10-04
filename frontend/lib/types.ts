@@ -24,7 +24,9 @@ export interface AuditReportFinding {
   semantic_concept?: string | null; semantic_property?: string | null; semantic_value?: unknown;
   ai_confidence?: number | null; mapping_source?: string | null;
   review?: HumanReview | null;
+  explanation?: FindingExplanation | null;
 }
+export interface FindingExplanation { explanation: string; detected_condition: string; expected_condition: string; evidence_summary: string; explanation_confidence: number; source: string; }
 export interface PostureDeduction { rule_id: string; severity: FindingSeverity; deduction: number; reason: string; }
 export interface PostureScore { score: number; rating: string; total_controls: number; passed: number; failed: number; manual: number; deductions: PostureDeduction[]; explanation: string; }
 export interface AuditReport {

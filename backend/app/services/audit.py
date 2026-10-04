@@ -10,6 +10,7 @@ from backend.app.compliance import ComplianceEngine
 from backend.app.normalization.cisco import CiscoSecurityFactMapper
 from backend.app.normalization.multivendor import map_vendor_commands
 from backend.app.services.posture import PostureScore, calculate_posture
+from backend.app.services.explanation import ExplanationService
 from parsers.vendors import detect_vendor, get_vendor_parser, normalize_vendor
 from backend.app.risk import RiskAssessment, RiskEngine
 from backend.app.schemas import Finding
@@ -38,6 +39,7 @@ class AuditService:
         self._mapper = CiscoSecurityFactMapper()
         self._compliance = ComplianceEngine()
         self._risk = RiskEngine()
+        self._explanation = ExplanationService()
 
     def audit_cisco_config(self, config_text: str) -> AuditResult:
         return self.audit_config("cisco", config_text)
@@ -57,6 +59,8 @@ class AuditService:
                 if finding.remediation and vendor != "cisco":
                     finding.remediation = None
         assessments = [self._risk.assess(finding) for finding in findings]
+        for finding in findings:
+            finding.explanation = self._explanation.explain(finding, vendor=vendor, platform=parser.platform)
         return AuditResult(
             vendor=vendor, platform=parser.platform, findings=findings,
             risk_assessments=assessments,

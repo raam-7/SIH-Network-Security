@@ -4,6 +4,7 @@ from .human_review import HumanReview, HumanReviewDecision, HumanReviewStatus
 from .parsed_command import ParsedCommand
 from .security_fact import SecurityFact
 from .attack_scenario import AttackScenario, AttackScenarioStatus
+from .explanation import ExplanationInput, FindingExplanation
 
 __all__ = [
     "Evidence",
@@ -17,4 +18,6 @@ __all__ = [
     "SecurityFact",
     "AttackScenario",
     "AttackScenarioStatus",
+    "ExplanationInput",
+    "FindingExplanation",
 ]
