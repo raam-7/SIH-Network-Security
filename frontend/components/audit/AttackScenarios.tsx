@@ -1,15 +1,147 @@
-"use client";
-import { useState } from "react";
-import type { AttackScenario, AttackScenarioStatus } from "../../lib/types";
+import type { AttackScenario } from "../../lib/types";
 
-type AttackScenariosProps = { scenarios?: AttackScenario[]; loading?: boolean; error?: string };
+export default function AttackScenarios({
+  scenarios,
+}: {
+  scenarios: AttackScenario[];
+}) {
+  if (!scenarios.length) {
+    return (
+      <div className="attack-empty">
+        <div className="attack-empty-icon">✓</div>
+        <strong>No attack scenarios identified</strong>
+        <p>No configuration-driven attack paths were generated for this audit.</p>
+      </div>
+    );
+  }
 
-export default function AttackScenarios({ scenarios, loading = false, error = "" }: AttackScenariosProps) {
-  const [filter, setFilter] = useState<AttackScenarioStatus | "ALL">("APPLICABLE");
-  const safeScenarios = scenarios ?? [];
-  const visible = safeScenarios.filter(scenario => filter === "ALL" || scenario.status === filter);
-  return <section className="attack-section"><div className="section-title"><div><h2>Attack Scenarios</h2><p className="meta">Defensive attack-path modeling based on configuration findings. No exploitation is performed.</p></div><select className="select scenario-filter" aria-label="Filter attack scenarios" value={filter} onChange={event => setFilter(event.target.value as AttackScenarioStatus | "ALL")}><option value="ALL">All statuses</option><option value="APPLICABLE">Applicable</option><option value="POTENTIAL">Potential / review</option><option value="NOT_APPLICABLE">Not applicable</option></select></div>{loading ? <div className="empty">Analyzing attack scenarios…</div> : error ? <div className="notice error">Attack scenario analysis could not be loaded.</div> : visible.length === 0 ? <div className="empty">No supported attack scenarios were established by the audit findings.</div> : <div className="scenario-grid">{visible.map(scenario => <ScenarioCard key={scenario.scenario_id} scenario={scenario} />)}</div>}</section>;
-}
-function ScenarioCard({ scenario }: { scenario: AttackScenario }) {
-  return <article className="scenario-card"><div className="finding-head"><div><span className="eyebrow">Attack scenario</span><h3>{scenario.name}</h3></div><div className={`scenario-status ${scenario.status.toLowerCase()}`}>{scenario.status}</div></div><p>{scenario.description}</p><div className="scenario-meta"><span>Severity <strong>{scenario.severity}</strong></span><span>Findings <strong>{scenario.supporting_rule_ids.length}</strong></span><span>Evidence <strong>{scenario.evidence_score}/100</strong></span></div><div className="path-flow">{scenario.potential_path.map((node, index) => <span key={`${scenario.scenario_id}-path-${index}-${node}`}>{index > 0 && <b>↓</b>}<i>{node}</i></span>)}</div><div className="scenario-support"><span className="label">Supporting findings</span><p>{scenario.supporting_rule_ids.join(" · ")}</p>{scenario.requires_human_review && <span className="review-required">Requires human review · Potential attack path</span>}</div><details><summary>View attack path details</summary><p><strong>Entry point:</strong> {scenario.entry_point}</p><p><strong>Potential impact:</strong> {scenario.potential_impact}</p><span className="label">Recommended controls</span><ul>{scenario.recommended_controls.map((control, index) => <li key={`${scenario.scenario_id}-control-${index}-${control}`}>{control}</li>)}</ul></details></article>;
+  return (
+    <div className="attack-scenario-grid">
+      {scenarios.map((scenario, index) => (
+        <article className="attack-modern-card" key={scenario.scenario_id}>
+          <div className="attack-modern-header">
+            <div className="attack-number">
+              {String(index + 1).padStart(2, "0")}
+            </div>
+
+            <div className="attack-title">
+              <span>ATTACK SCENARIO</span>
+              <h3>{scenario.name}</h3>
+            </div>
+
+            <span className={`severity-badge ${scenario.severity.toLowerCase()}`}>
+              {scenario.severity}
+            </span>
+          </div>
+
+          <div className="attack-modern-body">
+            <div className="attack-status-row">
+              <span className={`attack-status ${scenario.status.toLowerCase()}`}>
+                {scenario.status.replace("_", " ")}
+              </span>
+
+              {scenario.requires_human_review && (
+                <span className="attack-review-badge">
+                  Human review
+                </span>
+              )}
+            </div>
+
+            <p className="attack-description">
+              {scenario.description}
+            </p>
+
+            {scenario.entry_point && (
+              <div className="attack-detail-block">
+                <span className="attack-section-label">ENTRY POINT</span>
+                <p>{scenario.entry_point}</p>
+              </div>
+            )}
+
+            {scenario.potential_path.length > 0 && (
+              <div className="attack-path-section">
+                <span className="attack-section-label">
+                  POTENTIAL ATTACK PATH
+                </span>
+
+                <div className="attack-modern-path">
+                  {scenario.potential_path.map((step: string, stepIndex: number) => (
+                    <div
+                      className="attack-path-step"
+                      key={`${step}-${stepIndex}`}
+                    >
+                      <span>{stepIndex + 1}</span>
+                      <strong>{step}</strong>
+
+                      {stepIndex < scenario.potential_path.length - 1 && (
+                        <i>→</i>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="attack-detail-block">
+              <span className="attack-section-label">
+                POTENTIAL IMPACT
+              </span>
+              <p>{scenario.potential_impact}</p>
+            </div>
+
+            {scenario.recommended_controls.length > 0 && (
+              <div className="attack-mitigation">
+                <span className="mitigation-icon">✓</span>
+
+                <div>
+                  <strong>Recommended controls</strong>
+
+                  <ul>
+                    {scenario.recommended_controls.map(
+                      (control: string, controlIndex: number) => (
+                        <li key={`${control}-${controlIndex}`}>
+                          {control}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {scenario.evidence.length > 0 && (
+              <div className="attack-evidence">
+                <span className="attack-section-label">
+                  SUPPORTING EVIDENCE
+                </span>
+
+                {scenario.evidence.map((evidence, evidenceIndex) => (
+                  <div
+                    className="attack-evidence-item"
+                    key={`${evidence.line_start}-${evidenceIndex}`}
+                  >
+                    <code>
+                      Lines {evidence.line_start} – {evidence.line_end}
+                    </code>
+
+                    <p>{evidence.exact_text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="attack-modern-footer">
+            <span>
+              Supporting controls: {scenario.supporting_rule_ids.length}
+            </span>
+
+            <span>
+              Evidence score: {scenario.evidence_score}
+            </span>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 }
