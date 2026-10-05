@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Optional
 
 from backend.app.schemas import Evidence, ParsedCommand, SecurityFact
@@ -10,6 +11,7 @@ from backend.app.schemas import Evidence, ParsedCommand, SecurityFact
 
 MAPPING_SOURCE = "deterministic_mapping"
 _SSH_VERSION = re.compile(r"^ip\s+ssh\s+version\s+([12])$", re.IGNORECASE)
+_SSH_TIMEOUT = re.compile(r"^ip\s+ssh\s+time-out\s+(\d+)$", re.IGNORECASE)
 _TRANSPORT_INPUT = re.compile(r"^transport\s+input\s+(.+)$", re.IGNORECASE)
 _LOGGING_HOST = re.compile(r"^(no\s+)?logging\s+host\s+(\S+)$", re.IGNORECASE)
 
@@ -29,7 +31,13 @@ class CiscoSecurityFactMapper:
             domain, concept, property_name, value = (
                 "REMOTE_MANAGEMENT", "SSH_VERSION", "protocol_version", int(ssh_match.group(1))
             )
-        elif lower == "aaa new-model":
+        else:
+            timeout_match = _SSH_TIMEOUT.fullmatch(normalized)
+            if timeout_match:
+                domain, concept, property_name, value = (
+                    "REMOTE_MANAGEMENT", "SSH_TIMEOUT", "timeout_seconds", int(timeout_match.group(1))
+                )
+        if concept is None and lower == "aaa new-model":
             domain, concept, property_name, value = (
                 "AUTHENTICATION", "AAA", "authentication_mode", "aaa"
             )
@@ -65,6 +73,7 @@ class CiscoSecurityFactMapper:
             value=value,
             confidence=1.0,
             mapping_source=MAPPING_SOURCE,
+            semantic_method="deterministic",
             evidence=Evidence(
                 line_start=command.line_start,
                 line_end=command.line_end,
@@ -76,6 +85,49 @@ class CiscoSecurityFactMapper:
     def map(self, command: ParsedCommand) -> Optional[SecurityFact]:
         """Alias for callers that prefer a concise mapper interface."""
         return self.map_command(command)
+
+    def map_vty_transport(self, command: ParsedCommand) -> Optional[SecurityFact]:
+        """Map a VTY transport command to its complete allowed-protocol fact."""
+        normalized = command.raw_command.strip()
+        match = _TRANSPORT_INPUT.fullmatch(normalized)
+        if not match or not (command.parent_context or "").lower().startswith("line vty"):
+            return None
+        return SecurityFact(
+            vendor="cisco",
+            platform="ios-xe",
+            raw_command=command.raw_command,
+            security_domain="REMOTE_MANAGEMENT",
+            security_concept="VTY_TRANSPORT",
+            property="allowed_protocols",
+            value=match.group(1).lower().split(),
+            confidence=1.0,
+            mapping_source=MAPPING_SOURCE,
+            semantic_method="deterministic",
+            evidence=Evidence(
+                line_start=command.line_start,
+                line_end=command.line_end,
+                exact_text=command.raw_command,
+            ),
+            parent_context=command.parent_context,
+        )
+
+    def map_commands(
+        self, commands: Iterable[ParsedCommand] | ParsedCommand
+    ) -> list[SecurityFact]:
+        """Return all deterministic facts represented by parsed commands.
+
+        A single ParsedCommand remains accepted for compatibility with the
+        original helper usage; parser output should be passed as an iterable.
+        """
+        if isinstance(commands, ParsedCommand):
+            commands = (commands,)
+        facts = []
+        for command in commands:
+            if (fact := self.map_command(command)) is not None:
+                facts.append(fact)
+            if (fact := self.map_vty_transport(command)) is not None:
+                facts.append(fact)
+        return facts
 
 
 def map_cisco_command(command: ParsedCommand) -> Optional[SecurityFact]:

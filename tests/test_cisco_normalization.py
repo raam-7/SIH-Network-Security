@@ -21,6 +21,24 @@ def test_ssh_version_mapping(raw, value):
     assert fact.value == value
 
 
+@pytest.mark.parametrize(("raw", "value"), [("ip ssh time-out 60", 60), ("ip ssh time-out 30", 30)])
+def test_ssh_timeout_mapping(raw, value):
+    fact = CiscoSecurityFactMapper().map(parsed(raw, start=12))
+
+    assert fact.security_concept == "SSH_TIMEOUT"
+    assert fact.property == "timeout_seconds"
+    assert fact.value == value
+    assert fact.evidence.line_start == 12
+    assert fact.evidence.exact_text == raw
+
+
+def test_malformed_ssh_timeout_is_not_mapped():
+    mapper = CiscoSecurityFactMapper()
+    assert mapper.map(parsed("ip ssh time-out abc")) is None
+    assert mapper.map(parsed("ip ssh time-out")) is None
+    assert mapper.map(parsed("ip ssh time-out -1")) is None
+
+
 def test_unknown_and_unrelated_commands_return_none():
     mapper = CiscoSecurityFactMapper()
     assert mapper.map_command(parsed("some future Cisco command")) is None
@@ -73,6 +91,87 @@ def test_repeated_commands_are_not_deduplicated():
     facts = [CiscoSecurityFactMapper().map(c) for c in commands]
     assert [fact.value for fact in facts] == [2, 2, 2]
     assert [fact.evidence.line_start for fact in facts] == [1, 2, 3]
+
+
+def test_parent_context_and_command_evidence_are_preserved():
+    command = parse_cisco_config("line vty 0 4\n transport input ssh\n")[1]
+    fact = CiscoSecurityFactMapper().map(command)
+
+    assert fact.parent_context == "line vty 0 4"
+    assert fact.evidence.line_start == fact.evidence.line_end == 2
+    assert fact.evidence.exact_text == "transport input ssh"
+
+
+@pytest.mark.parametrize(
+    ("raw", "protocols"),
+    [
+        ("transport input ssh", ["ssh"]),
+        ("transport input telnet", ["telnet"]),
+        ("transport input telnet ssh", ["telnet", "ssh"]),
+    ],
+)
+def test_vty_transport_mapping_preserves_protocol_order_and_evidence(raw, protocols):
+    command = parsed(raw, "line vty 0 4", 22, 23)
+    fact = CiscoSecurityFactMapper().map_vty_transport(command)
+
+    assert fact.security_concept == "VTY_TRANSPORT"
+    assert fact.property == "allowed_protocols"
+    assert fact.value == protocols
+    assert fact.parent_context == "line vty 0 4"
+    assert fact.evidence.line_start == 22
+    assert fact.evidence.line_end == 23
+    assert fact.evidence.exact_text == raw
+    assert fact.confidence == 1.0
+    assert fact.mapping_source == MAPPING_SOURCE
+
+
+def test_vty_transport_mapping_is_not_emitted_outside_vty_context():
+    command = parsed("transport input ssh", "interface GigabitEthernet0/1")
+
+    assert CiscoSecurityFactMapper().map_vty_transport(command) is None
+
+
+def test_map_commands_preserves_existing_telnet_and_adds_vty_fact():
+    command = parsed("transport input telnet ssh", "line vty 0 4")
+    facts = CiscoSecurityFactMapper().map_commands(command)
+
+    assert [fact.security_concept for fact in facts] == ["TELNET_ACCESS", "VTY_TRANSPORT"]
+
+
+def test_map_commands_accepts_actual_parser_output():
+    commands = parse_cisco_config("line vty 0 4\n transport input ssh\n")
+    facts = CiscoSecurityFactMapper().map_commands(commands)
+
+    assert [(fact.security_concept, fact.property, fact.value) for fact in facts] == [
+        ("TELNET_ACCESS", "enabled", False),
+        ("VTY_TRANSPORT", "allowed_protocols", ["ssh"]),
+    ]
+
+
+def test_map_commands_accepts_parser_timeout_and_malformed_input():
+    mapper = CiscoSecurityFactMapper()
+    timeout_facts = mapper.map_commands(parse_cisco_config("ip ssh time-out 60"))
+    malformed_facts = mapper.map_commands(parse_cisco_config("ip ssh time-out abc"))
+
+    assert [(fact.security_concept, fact.property, fact.value) for fact in timeout_facts] == [
+        ("SSH_TIMEOUT", "timeout_seconds", 60),
+    ]
+    assert malformed_facts == []
+
+
+def test_map_commands_ignores_multiple_unrelated_parser_commands():
+    commands = parse_cisco_config("hostname R1\nunsupported command\nlogging buffered 64000\n")
+
+    assert CiscoSecurityFactMapper().map_commands(commands) == []
+
+
+def test_multiline_parser_evidence_preserves_source_text_and_range():
+    commands = parse_cisco_config("hostname R1\nbanner login ^\nAUTHORIZED\n^\n")
+    banner = commands[1]
+
+    assert banner.line_start == 2
+    assert banner.line_end == 4
+    assert banner.raw_command == "banner login ^\nAUTHORIZED\n^"
 
 
 def test_fixture_integration_for_ssh_and_management_security():

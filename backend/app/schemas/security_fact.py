@@ -16,6 +16,7 @@ class SecurityFact(BaseModel):
     value: Any = Field(..., description="Observed property value (can be int, str, bool, list, dict, or None)")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score of the mapping between 0.0 and 1.0")
     mapping_source: str = Field(..., description="Source of the mapping (e.g., 'verified_vendor_mapping', 'ai_proposed')")
+    semantic_method: str = Field(default="deterministic", description="How the semantic mapping was produced")
     evidence: Evidence = Field(..., description="Exact configuration evidence backing this fact")
     parent_context: Optional[str] = Field(
         default=None,

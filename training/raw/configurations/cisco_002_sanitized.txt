@@ -1,0 +1,246 @@
+Current configuration : 6009 bytes
+!
+! Last configuration change at 20:36:49 CDT Thu Apr 5 2018 by avatar
+! NVRAM config last updated at 20:30:03 CDT Thu Apr 5 2018 by avatar
+!
+version 15.5
+no service pad
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+service linenumber
+!
+hostname stargate
+!
+boot-start-marker
+boot-end-marker
+!
+!
+logging buffered 16384 informational
+logging rate-limit 30 except warnings
+!
+aaa new-model
+!
+!
+aaa authentication login default local
+aaa authentication ppp default local
+!
+!
+aaa session-id common
+ethernet lmi ce
+clock timezone cst -6 0
+clock summer-time CDT recurring
+!
+!
+no ip source-route
+!
+!
+ip domain name arkane-systems.lan
+ip host stargate 172.16.0.254
+ip host calmirie 172.16.0.128
+ip host ariadne 172.16.0.72
+ip host myrmidon 172.16.0.36
+ip host mnemosyne 172.16.0.24
+ip name-server 172.16.0.128
+ip ddns update method DynDNS
+ HTTP
+  add URL-GOES-HERE
+  remove URL-GOES-HERE
+ interval maximum 28 0 0 0
+ interval minimum 28 0 0 0
+!
+ip cef
+ipv6 unicast-routing
+ipv6 cef
+!
+!
+multilink bundle-name authenticated
+vpdn enable
+!
+vpdn-group VPN_Clients
+ ! Default L2TP VPDN group
+ accept-dialin
+  protocol l2tp
+  virtual-template 1
+ no l2tp tunnel authentication
+!
+!
+license udi pid C881-K9 sn NOT-INCLUDED
+!
+!
+archive
+ log config
+  logging enable
+  hidekeys
+ path flash:
+ maximum 3
+ write-memory
+!
+!
+crypto isakmp policy 1
+ encr 3des
+ authentication pre-share
+ group 2
+!
+!
+crypto ipsec transform-set VPN_TS esp-3des esp-sha-hmac
+ mode transport
+!
+!
+!
+crypto dynamic-map VPN_DYN_MAP 1
+ set nat demux
+ set transform-set VPN_TS
+!
+!
+crypto map VPN_MAP 1 ipsec-isakmp dynamic VPN_DYN_MAP
+!
+!
+interface Loopback0
+ ip address 172.20.0.1 255.255.255.252
+ ipv6 address FEC0:0:0:9::1/128
+!
+interface Null0
+ no ip unreachables
+!
+interface FastEthernet0
+ no ip address
+ hold-queue 100 out
+!
+interface FastEthernet1
+ no ip address
+ hold-queue 100 out
+!
+interface FastEthernet2
+ no ip address
+ shutdown
+!
+interface FastEthernet3
+ no ip address
+ shutdown
+!
+interface FastEthernet4
+ description Internet
+ bandwidth 100000
+ ip dhcp client update dns server none
+ ip ddns update DynDNS
+ ip address dhcp hostname stargate.arkane-systems.net
+ ip access-group 111 in
+ no ip redirects
+ no ip unreachables
+ no ip proxy-arp
+ ip nat enable
+ ip virtual-reassembly in
+ duplex auto
+ speed auto
+ ipv6 address dhcp rapid-commit
+ ipv6 address autoconfig default
+ ipv6 enable
+ ipv6 dhcp client pd hint ::/56
+ ipv6 dhcp client pd prefix-from-provider rapid-commit
+ ipv6 traffic-filter exterior-in6 in
+ ipv6 traffic-filter exterior-out6 out
+ ipv6 virtual-reassembly in
+ no cdp enable
+ crypto map VPN_MAP
+!
+interface Virtual-Template1
+ ip unnumbered Vlan1
+ ip nat enable
+ peer default ip address pool VPN_POOL
+ keepalive 16
+ ppp encrypt mppe auto required
+ ppp authentication ms-chap-v2 ms-chap chap
+!
+interface Vlan1
+ description Internal network
+ ip address 172.16.0.254 255.255.0.0
+ no ip redirects
+ ip nat enable
+ ip virtual-reassembly in
+ ip tcp adjust-mss 1452
+ ipv6 address FDC9:B01A:9D26::FE/64
+ ipv6 address prefix-from-provider ::1:0:0:0:1/64
+ ipv6 enable
+ ipv6 nd prefix default 3600 3600
+ ipv6 nd prefix FDC9:B01A:9D26::/64 3600 3600
+ ipv6 nd other-config-flag
+ ipv6 virtual-reassembly in
+!
+ip local pool VPN_POOL 172.16.3.1 172.16.3.15
+ip forward-protocol nd
+no ip http server
+ip http access-class 75
+ip http authentication local
+no ip http secure-server
+ip http timeout-policy idle 5 life 86400 requests 10000
+!
+!
+ip nat source list 1 interface FastEthernet4 overload
+ip nat source static tcp 172.16.0.72 880 interface FastEthernet4 443
+ip nat source static tcp 172.16.0.24 32400 interface FastEthernet4 32400
+ip nat source static tcp 172.16.1.254 3074 interface FastEthernet4 3074
+ip nat source static udp 172.16.1.254 3074 interface FastEthernet4 3074
+ip nat source static tcp 172.16.1.253 49174 interface FastEthernet4 49174
+ip nat source static udp 172.16.1.253 49174 interface FastEthernet4 49174
+ip ssh time-out 60
+ip ssh authentication-retries 5
+ip ssh pubkey-chain
+  SSH-KEY-DETAILS
+!
+ipv6 route 100::/64 Null0
+ipv6 route 2001:10::/28 Null0
+ipv6 route 2001:DB8::/32 Null0
+!
+access-list 1 permit 172.16.0.0 0.0.255.255
+access-list 1 remark NAT-enabled addresses
+access-list 75 permit 172.16.0.0 0.0.255.255 log
+access-list 75 deny   any log
+access-list 75 remark Access to router ttys
+access-list 111 deny   ip 172.16.0.0 0.0.255.255 any
+access-list 111 permit ip any any
+access-list 111 remark prevent spoofing - block external inbounds with local source addrs
+!
+!
+ipv6 access-list console
+ permit ipv6 FDC9:B01A:9D26::/48 any
+!
+ipv6 access-list exterior-in6
+ sequence 5 permit icmp any any
+ sequence 10 permit udp any any eq 546
+ evaluate exterior-reflect
+ sequence 100 deny ipv6 any any
+!
+ipv6 access-list exterior-out6
+ sequence 20 permit ipv6 any any reflect exterior-reflect
+!
+control-plane
+!
+!
+mgcp behavior rsip-range tgcp-only
+mgcp behavior comedia-role none
+mgcp behavior comedia-check-media-src disable
+mgcp behavior comedia-sdp-force disable
+!
+mgcp profile default
+!
+!
+line con 0
+ location Living room
+ no modem enable
+ transport preferred none
+ transport output all
+line aux 0
+ transport output all
+line vty 0 4
+ access-class 75 in
+ privilege level 15
+ ipv6 access-class console in
+ transport preferred none
+ transport input ssh
+ transport output all
+!
+scheduler allocate 20000 1000
+ntp server 172.16.0.128
+!
+end

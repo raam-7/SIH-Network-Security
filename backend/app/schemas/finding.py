@@ -34,3 +34,11 @@ class Finding(BaseModel):
         default=None,
         description="Remediation command or instructions to achieve compliance",
     )
+    evidence_score: int = Field(default=0, ge=0, le=100)
+    evidence_type: str = Field(default="No supporting configuration evidence found.")
+    semantic_concept: Optional[str] = None
+    semantic_property: Optional[str] = None
+    semantic_value: Any = None
+    ai_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    mapping_source: Optional[str] = None
+    explanation: Any = None
