@@ -97,7 +97,7 @@ function AttackScenarioWorkspace() {
           <h1>Attack Scenario Analysis</h1>
 
           <p>
-            We couldn't load the selected security assessment.
+            We couldn&apos;t load the selected security assessment.
           </p>
         </section>
 
@@ -321,7 +321,7 @@ function AttackScenarioWorkspace() {
 
             <p>
               No configuration-driven attack paths were
-              generated from this audit's findings.
+              generated from this audit&apos;s findings.
             </p>
 
             <Link
