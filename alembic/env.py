@@ -1,9 +1,16 @@
 from logging.config import fileConfig
 import os
+from pathlib import Path
+
 from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
+
 from backend.app.db.base import Base
 from backend.app.db.models import AuditORM, FindingORM, RiskAssessmentORM
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
 
 config = context.config
 if config.config_file_name is not None:

@@ -65,13 +65,21 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Keep `.env` local. Never commit credentials, API keys, passwords, or private SSH material.
+Edit `.env` and set `DATABASE_URL` to the credentials and database for your local PostgreSQL instance. The backend and Alembic load this file automatically; existing process environment variables take precedence. URL-encode reserved characters in the username or password.
+
+Keep `.env` local. Never commit credentials, API keys, passwords, or private SSH material. Before starting the backend for the first time, apply the database migrations:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
 
 ## Start the backend
 
 ```powershell
-\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload
 ```
+
+If port `8000` is already in use, reuse the running backend instead of launching another copy, or stop that server with `Ctrl+C` in its terminal before restarting.
 
 The API is available at `http://127.0.0.1:8000`.
 

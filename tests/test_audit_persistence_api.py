@@ -5,6 +5,7 @@ import hashlib
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 
@@ -55,6 +56,27 @@ def test_persistence_api_create_get_and_list():
     assert fetched.json()["summary"]["overall_status"] == "REVIEW_REQUIRED"
     assert listed.status_code == 200
     assert listed.json()["items"]
+
+
+def test_database_error_returns_cors_compatible_service_unavailable(monkeypatch):
+    def unavailable_session():
+        raise OperationalError("SELECT 1", {}, RuntimeError("database unavailable"))
+
+    monkeypatch.setitem(app.dependency_overrides, get_session, unavailable_session)
+    try:
+        response = client.get(
+            "/api/v1/audits",
+            headers={"Origin": "http://localhost:3000"},
+        )
+    finally:
+        app.dependency_overrides[get_session] = override_session
+
+    assert response.status_code == 503
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.json()["detail"] == (
+        "Database unavailable. Check that PostgreSQL is running and "
+        "DATABASE_URL in the root .env file has valid credentials."
+    )
 
 
 def test_api_generates_exact_server_side_configuration_hash_and_round_trips():
