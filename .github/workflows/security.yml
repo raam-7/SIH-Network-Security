@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Scan source and dependencies
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
@@ -45,7 +45,7 @@ jobs:
         run: docker build -f docker/backend.Dockerfile -t sih-backend:security-scan .
 
       - name: Scan backend image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           image-ref: sih-backend:security-scan
@@ -57,7 +57,7 @@ jobs:
         run: docker build -f docker/frontend.Dockerfile -t sih-frontend:security-scan .
 
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           image-ref: sih-frontend:security-scan
