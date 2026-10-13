@@ -1,0 +1,91 @@
+
+name: SIH Network Security CD
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "parsers/**"
+      - "alembic/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          DEPLOY_HOST: ${{ secrets.EC2_HOST }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DEPLOY_HOST
+          command_timeout: 15m
+          script: |
+            set -eu
+            cd /home/ubuntu/SIH-Network-Security
+
+            echo "Checking production environment file..."
+            test -f .env.production
+            test -s .env.production
+
+            echo "Fetching latest master..."
+            git fetch origin master
+            git reset --hard origin/master
+
+            echo "Validating Docker Compose configuration..."
+            docker compose --env-file .env.production config --quiet
+
+            echo "Building and starting services..."
+            docker compose --env-file .env.production up -d --build --remove-orphans
+
+            echo "Checking frontend..."
+            for i in $(seq 1 30); do
+              if curl --fail --silent http://127.0.0.1:3000/ -o /dev/null; then
+                echo "Frontend is healthy."
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Frontend health check failed."
+                docker compose --env-file .env.production logs --tail=100 frontend
+                exit 1
+              fi
+              sleep 5
+            done
+
+            echo "Checking backend health..."
+            for i in $(seq 1 30); do
+              if curl --fail --silent http://127.0.0.1:8000/api/v1/health; then
+                echo
+                echo "Backend is healthy."
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "Backend health check failed."
+                docker compose --env-file .env.production logs --tail=100 backend
+                exit 1
+              fi
+              sleep 5
+            done
+
+            echo
+            echo "Deployment and health checks completed."
