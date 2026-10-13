@@ -1,0 +1,66 @@
+
+name: SIH Network Security Scanning
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "parsers/**"
+      - "alembic/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/security.yml"
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-scan:
+    name: Vulnerability Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan source and dependencies
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+
+      - name: Build backend image
+        run: docker build -f docker/backend.Dockerfile -t sih-backend:security-scan .
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: image
+          image-ref: sih-backend:security-scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+
+      - name: Build frontend image
+        run: docker build -f docker/frontend.Dockerfile -t sih-frontend:security-scan .
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: image
+          image-ref: sih-frontend:security-scan
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "0"
